@@ -1,0 +1,71 @@
+<div class="auth-page">
+  <div class="auth-shell">
+    <div class="auth-card card animate-fade-up">
+      <h2 class="auth-title">Verify OTP</h2>
+      <p class="auth-sub text-muted">Enter the 6-digit code sent to <span class="otp-email">{{ email }}</span>.</p>
+
+      <div class="otp-group" (paste)="onPaste($event)">
+        <input
+          *ngFor="let digit of otpDigits; let i = index"
+          #otpInput
+          type="text"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          maxlength="1"
+          class="otp-input"
+          [value]="digit"
+          [attr.aria-label]="'OTP digit ' + (i + 1)"
+          (input)="onDigitInput(i, $event)"
+          (keydown)="onKeyDown(i, $event)"
+        />
+      </div>
+
+      <p class="text-muted text-sm otp-hint">Use only numeric digits. The code expires automatically if unused for too long.</p>
+
+      <button type="button" class="btn btn-primary btn-full btn-lg auth-submit-btn" [disabled]="loading || !isOtpComplete" (click)="verifyOtp()">
+        <span class="auth-btn-label" *ngIf="!loading">Verify OTP</span>
+        <span class="auth-btn-label" *ngIf="loading">
+          <span class="auth-btn-spinner" aria-hidden="true"></span>
+          <span>Verifying...</span>
+        </span>
+      </button>
+
+      <div class="otp-actions">
+        <button type="button" class="btn btn-ghost" [disabled]="resendLoading || cooldownRemaining > 0" (click)="resendOtp()">
+          {{resendLoading ? 'Sending...' : 'Resend OTP'}}
+        </button>
+        <span class="text-muted text-sm" *ngIf="cooldownRemaining > 0">Resend OTP in {{cooldownLabel}}</span>
+      </div>
+
+      <div class="auth-footer">
+        <p class="text-muted text-sm">Wrong email? <a routerLink="/forgot-password" class="text-cyan">Start again</a></p>
+      </div>
+    </div>
+
+    <div class="auth-visual card animate-fade-up">
+      <div class="auth-visual-media">
+        <img src="assets/illustrations/istockphoto-530089923-612x612.jpg" alt="Verification screen on a mobile device" />
+        <div class="auth-visual-overlay">
+          <span class="visual-tag">One-time code</span>
+          <h3>Short step, strong protection.</h3>
+          <p>We verify it’s really you before allowing a password change, keeping your booking history secure.</p>
+        </div>
+      </div>
+
+      <div class="auth-visual-highlights">
+        <div class="visual-stat">
+          <strong>6 digits</strong>
+          <span>quick entry</span>
+        </div>
+        <div class="visual-stat">
+          <strong>Timed</strong>
+          <span>resend cooldown</span>
+        </div>
+        <div class="visual-stat">
+          <strong>Protected</strong>
+          <span>JWT-free flow</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

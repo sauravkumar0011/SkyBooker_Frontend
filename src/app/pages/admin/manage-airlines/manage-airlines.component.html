@@ -1,0 +1,104 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="page-header"><h1>Manage Airlines</h1><p>Add, edit, and deactivate airline records.</p></div>
+
+    <button type="button" class="btn btn-secondary mb-4" (click)="toggleForm()">
+      {{formOpen ? 'Hide Airline Form' : editMode ? 'Open Edit Airline Form' : 'Open Add Airline Form'}}
+    </button>
+
+    <div class="card mb-4" style="max-width:760px" *ngIf="formOpen">
+      <h3 class="mb-3">{{editMode ? 'Edit Airline' : 'Add New Airline'}}</h3>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label class="form-label">Airline Name <span class="required-mark">*</span></label>
+          <input type="text" class="form-control" formControlName="name" placeholder="Air India" />
+          <span class="form-error" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">{{ getErrorMessage('name') }}</span>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">IATA Code <span class="required-mark">*</span></label>
+            <input type="text" class="form-control" formControlName="iataCode" placeholder="AI" maxlength="3" style="text-transform:uppercase" />
+            <span class="form-error" *ngIf="form.get('iataCode')?.invalid && form.get('iataCode')?.touched">{{ getErrorMessage('iataCode') }}</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ICAO Code</label>
+            <input type="text" class="form-control" formControlName="icaoCode" placeholder="AIC" maxlength="4" style="text-transform:uppercase" />
+            <span class="form-error" *ngIf="form.get('icaoCode')?.invalid && form.get('icaoCode')?.touched">{{ getErrorMessage('icaoCode') }}</span>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Country</label>
+            <input type="text" class="form-control" formControlName="country" placeholder="India" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contact Email <span class="required-mark">*</span></label>
+            <input type="email" class="form-control" formControlName="contactEmail" placeholder="ops@airindia.com" />
+            <span class="form-error" *ngIf="form.get('contactEmail')?.invalid && form.get('contactEmail')?.touched">{{ getErrorMessage('contactEmail') }}</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Contact Phone</label>
+          <input type="tel" class="form-control" formControlName="contactPhone" placeholder="+91 9876543210" />
+        </div>
+
+        <div class="flex gap-2">
+          <button type="submit" class="btn btn-primary" [disabled]="submitting">
+            {{submitting ? 'Saving...' : editMode ? 'Update Airline' : 'Add Airline'}}
+          </button>
+          <button type="button" class="btn btn-ghost" (click)="editMode ? cancelEdit() : toggleForm()">
+            {{editMode ? 'Cancel' : 'Close'}}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <app-loading-spinner *ngIf="loading" message="Loading airlines..."></app-loading-spinner>
+    <div class="table-wrapper" *ngIf="!loading && airlines.length > 0">
+      <table>
+        <thead><tr><th>Name</th><th>IATA</th><th>ICAO</th><th>Contact</th><th>Country</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let a of airlines">
+            <td class="font-semibold">{{a.name}}</td>
+            <td><span class="badge badge-cyan">{{a.iataCode}}</span></td>
+            <td>{{a.icaoCode || '-'}}</td>
+            <td>{{a.contactEmail || '-'}}</td>
+            <td>{{a.country || '-'}}</td>
+            <td><span class="badge" [ngClass]="getStatusClass(a)">{{getAirlineStatus(a)}}</span></td>
+            <td>
+              <div class="flex gap-1">
+                <button class="btn btn-ghost btn-sm" (click)="startEdit(a)">Edit</button>
+                <button class="btn btn-danger btn-sm" *ngIf="getAirlineStatus(a).toUpperCase() === 'ACTIVE'" (click)="openDeactivateConfirm(a)">Deactivate</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card text-center" *ngIf="!loading && airlines.length === 0" style="padding:40px">
+      <p class="text-muted">No airlines yet. Add the first one above.</p>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-backdrop" *ngIf="selectedAirline" (click)="closeDeactivateConfirm()">
+  <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="deactivate-title" (click)="$event.stopPropagation()">
+    <div class="confirm-icon">!</div>
+    <div>
+      <h3 id="deactivate-title">Deactivate airline?</h3>
+      <p class="text-muted">
+        {{selectedAirline.name}} will no longer appear as an active airline.
+      </p>
+    </div>
+    <div class="confirm-actions">
+      <button type="button" class="btn btn-ghost" [disabled]="deactivating" (click)="closeDeactivateConfirm()">Cancel</button>
+      <button type="button" class="btn btn-danger" [disabled]="deactivating" (click)="confirmDeactivate()">
+        {{deactivating ? 'Deactivating...' : 'Deactivate'}}
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,111 @@
+<div class="home-page">
+  <section class="hero">
+    <div class="hero-photo"></div>
+    <div class="hero-overlay"></div>
+
+    <div class="container hero-content">
+      <div class="hero-copy">
+        <div class="hero-badge">The Future of Flight Booking</div>
+        <h1 class="hero-title">
+          Search. Book.<br>
+          <span class="hero-accent">Fly Effortlessly.</span>
+        </h1>
+        <p class="hero-sub">
+          Compare routes, explore seats, and plan your next trip in one smooth flow. No login needed to search flights or view the seat map.
+        </p>
+      </div>
+
+      <div class="search-card card">
+        <form [formGroup]="searchForm" (ngSubmit)="onSearch()">
+          <div class="search-bar">
+            <div class="form-group">
+              <label class="form-label">From (IATA Code)</label>
+              <input
+                type="text"
+                class="form-control"
+                formControlName="origin"
+                placeholder="DEL"
+                style="text-transform:uppercase"
+              />
+              <span class="form-error" *ngIf="searchForm.get('origin')?.invalid && searchForm.get('origin')?.touched">
+                Enter origin airport code
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">To (IATA Code)</label>
+              <input
+                type="text"
+                class="form-control"
+                formControlName="destination"
+                placeholder="BOM"
+                style="text-transform:uppercase"
+              />
+              <span class="form-error" *ngIf="searchForm.get('destination')?.invalid && searchForm.get('destination')?.touched">
+                Enter destination airport code
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Departure Date</label>
+              <input
+                type="date"
+                class="form-control"
+                formControlName="departureDate"
+                [min]="today"
+              />
+              <span class="form-error" *ngIf="searchForm.get('departureDate')?.invalid && searchForm.get('departureDate')?.touched">
+                Select a departure date
+              </span>
+            </div>
+
+            <div class="search-action">
+              <span class="search-action-label">Browse fares and seat maps</span>
+              <button type="submit" class="btn btn-primary btn-lg search-submit">
+                Search Flights
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="hero-quick">
+        <a routerLink="/passenger/flights" class="quick-link">Search flights</a>
+        <span class="quick-sep">&middot;</span>
+        <a routerLink="/retrieve-booking" class="quick-link">Track my booking</a>
+        <span class="quick-sep" *ngIf="!auth.isLoggedIn()">&middot;</span>
+        <a routerLink="/register" class="quick-link" *ngIf="!auth.isLoggedIn()">Create account when ready</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section features-section">
+    <div class="container">
+      <div class="section-header text-center">
+        <h2>Why fly with SkyBooker?</h2>
+        <p class="text-muted mt-1">Everything you need for a seamless travel experience</p>
+      </div>
+      <div class="grid-4 mt-4">
+        <div class="feature-card card" *ngFor="let f of features; let i = index"
+             [style.animation-delay]="(i * 0.1) + 's'">
+          <div class="feature-icon">{{f.icon}}</div>
+          <h3 class="feature-title">{{f.title}}</h3>
+          <p class="feature-desc">{{f.desc}}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-strip">
+    <div class="container cta-inner">
+      <div>
+        <h2 class="cta-title">Ready for takeoff?</h2>
+        <p class="text-muted">Search flights now, then sign in only when you want to confirm a seat.</p>
+      </div>
+      <div class="flex gap-2 wrap">
+        <a routerLink="/passenger/flights" class="btn btn-primary btn-lg">Search Flights</a>
+        <a routerLink="/register" class="btn btn-secondary btn-lg" *ngIf="!auth.isLoggedIn()">Create Account</a>
+      </div>
+    </div>
+  </section>
+</div>

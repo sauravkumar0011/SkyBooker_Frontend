@@ -1,0 +1,55 @@
+.action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  background: var(--navy-700);
+  border-radius: var(--radius-sm);
+  color: var(--slate-200);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: all var(--transition);
+}
+
+.action-link:hover {
+  background: rgba(34, 211, 238, 0.08);
+  border-color: rgba(34, 211, 238, 0.25);
+  color: var(--white);
+  transform: translateX(4px);
+}
+
+.flight-mini {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.flight-mini:last-child {
+  border-bottom: none;
+}
+
+.icon-flight {
+  background: rgba(34, 211, 238, 0.1);
+}
+
+.icon-on-time {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.icon-delayed {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.icon-cancelled {
+  background: rgba(239, 68, 68, 0.1);
+}

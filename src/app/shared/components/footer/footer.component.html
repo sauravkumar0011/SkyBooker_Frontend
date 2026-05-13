@@ -1,0 +1,22 @@
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <span class="brand-icon">&#9992;</span>
+      <span>Sky<span class="brand-accent">Booker</span></span>
+    </div>
+    <div class="footer-text">
+      &copy; {{ year }} SkyBooker. Search. Book. Fly. Effortlessly.
+    </div>
+    <div class="footer-links">
+      <a routerLink="/retrieve-booking">Track Booking</a>
+      <ng-container *ngIf="!auth.isLoggedIn()">
+        <a routerLink="/login">Login</a>
+        <a routerLink="/register">Sign Up</a>
+      </ng-container>
+      <ng-container *ngIf="auth.isLoggedIn()">
+        <a [routerLink]="dashboardRoute">Dashboard</a>
+        <a href="#" (click)="logout($event)">Logout</a>
+      </ng-container>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,156 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="page-header flex justify-between items-center">
+      <div>
+        <h1>Manage Flights</h1>
+        <p>View and update flights for your airline only.</p>
+      </div>
+      <a routerLink="/staff/add-flight" class="btn btn-primary">➕ Add Flight</a>
+    </div>
+
+    <app-loading-spinner *ngIf="loading" message="Loading flights..."></app-loading-spinner>
+
+    <div *ngIf="!loading">
+      <div *ngIf="flights.length === 0" class="card text-center" style="padding:48px">
+        <p class="text-muted mb-2">No flights found.</p>
+        <a routerLink="/staff/add-flight" class="btn btn-primary">Add First Flight</a>
+      </div>
+
+      <div class="table-wrapper" *ngIf="flights.length > 0">
+        <table>
+          <thead>
+            <tr>
+              <th>Flight #</th>
+              <th>Route</th>
+              <th>Departure</th>
+              <th>Arrival</th>
+              <th>Aircraft</th>
+              <th>Price</th>
+              <th>Status</th>
+              <th>Update Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let f of flights">
+              <td><span class="font-semibold text-cyan">{{f.flightNumber}}</span></td>
+              <td>{{f.originAirportCode}} → {{f.destinationAirportCode}}</td>
+              <td>{{f.departureTime | date:'medium'}}</td>
+              <td>{{f.arrivalTime | date:'medium'}}</td>
+              <td>{{f.aircraftType}}</td>
+              <td>₹{{f.basePrice | number}}</td>
+              <td><span class="badge {{getStatusClass(f.status)}}">{{displayStatus(f.status)}}</span></td>
+              <td>
+                <select class="status-select"
+                  [ngModel]="displayStatus(f.status)"
+                  [ngModelOptions]="{standalone: true}"
+                  (ngModelChange)="updateStatus(f, $event)"
+                  [disabled]="updatingId === f.flightId">
+                  <option *ngFor="let s of statuses" [ngValue]="s">{{s}}</option>
+                </select>
+              </td>
+              <td>
+                <div class="flex gap-1">
+                  <button type="button" class="btn btn-ghost btn-sm" (click)="openEdit(f)">Edit</button>
+                  <button type="button" class="btn btn-danger btn-sm" (click)="openDeleteConfirm(f)">Delete</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" *ngIf="editingFlight" (click)="closeEdit()">
+  <div class="flight-modal" role="dialog" aria-modal="true" aria-labelledby="edit-flight-title" (click)="$event.stopPropagation()">
+    <h3 id="edit-flight-title" class="mb-3">Edit Flight</h3>
+    <form [formGroup]="editForm" (ngSubmit)="saveEdit()">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Flight Number</label>
+          <input type="text" class="form-control" formControlName="flightNumber" />
+          <span class="form-error" *ngIf="editForm.get('flightNumber')?.invalid && editForm.get('flightNumber')?.touched">Required</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Airline</label>
+          <input type="text" class="form-control" [value]="currentAirlineName || 'Loading airline...'" readonly />
+          <span class="form-error" *ngIf="editForm.get('airlineId')?.invalid && editForm.get('airlineId')?.touched">Required</span>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Origin Airport Code</label>
+          <input type="text" class="form-control" formControlName="originAirportCode" maxlength="3" style="text-transform:uppercase" />
+          <span class="form-error" *ngIf="editForm.get('originAirportCode')?.invalid && editForm.get('originAirportCode')?.touched">3-letter IATA code required</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Destination Airport Code</label>
+          <input type="text" class="form-control" formControlName="destinationAirportCode" maxlength="3" style="text-transform:uppercase" />
+          <span class="form-error" *ngIf="editForm.get('destinationAirportCode')?.invalid && editForm.get('destinationAirportCode')?.touched">3-letter IATA code required</span>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Departure Time</label>
+          <input type="datetime-local" class="form-control" formControlName="departureTime" />
+          <span class="form-error" *ngIf="editForm.get('departureTime')?.invalid && editForm.get('departureTime')?.touched">Required</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Arrival Time</label>
+          <input type="datetime-local" class="form-control" formControlName="arrivalTime" />
+          <span class="form-error" *ngIf="editForm.get('arrivalTime')?.invalid && editForm.get('arrivalTime')?.touched">Required</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Aircraft Type</label>
+        <select class="form-control" formControlName="aircraftType">
+          <option value="" disabled hidden>Select aircraft type</option>
+          <option *ngIf="hasCustomAircraftType()" [value]="editForm.get('aircraftType')?.value">{{ editForm.get('aircraftType')?.value }}</option>
+          <option *ngFor="let aircraftType of aircraftTypes" [value]="aircraftType">{{ aircraftType }}</option>
+        </select>
+        <span class="form-error" *ngIf="editForm.get('aircraftType')?.invalid && editForm.get('aircraftType')?.touched">Required</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Total Seats</label>
+          <input type="number" class="form-control" formControlName="totalSeats" min="1" />
+          <span class="form-error" *ngIf="editForm.get('totalSeats')?.invalid && editForm.get('totalSeats')?.touched">Required (min 1)</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Base Price</label>
+          <input type="number" class="form-control" formControlName="basePrice" min="0" />
+          <span class="form-error" *ngIf="editForm.get('basePrice')?.invalid && editForm.get('basePrice')?.touched">Required</span>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" [disabled]="savingEdit" (click)="closeEdit()">Cancel</button>
+        <button type="submit" class="btn btn-primary" [disabled]="savingEdit">
+          {{savingEdit ? 'Saving...' : 'Save Changes'}}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" *ngIf="deletingFlight" (click)="closeDeleteConfirm()">
+  <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-flight-title" (click)="$event.stopPropagation()">
+    <div class="confirm-icon">!</div>
+    <h3 id="delete-flight-title">Delete flight?</h3>
+    <p class="text-muted">
+      {{deletingFlight.flightNumber}} will be permanently removed.
+    </p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" [disabled]="deleting" (click)="closeDeleteConfirm()">Cancel</button>
+      <button type="button" class="btn btn-danger" [disabled]="deleting" (click)="confirmDelete()">
+        {{deleting ? 'Deleting...' : 'Delete'}}
+      </button>
+    </div>
+  </div>
+</div>

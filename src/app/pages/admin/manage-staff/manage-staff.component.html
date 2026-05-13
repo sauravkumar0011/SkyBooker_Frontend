@@ -1,0 +1,136 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="page-header">
+      <h1>Manage Staff</h1>
+      <p>Create airline staff accounts and manage access from one place.</p>
+    </div>
+
+    <button type="button" class="btn btn-secondary mb-4" (click)="toggleForm()">
+      {{formOpen ? 'Hide Staff Form' : 'Open Add Staff Form'}}
+    </button>
+
+    <div class="card mb-4" style="max-width:760px" *ngIf="formOpen">
+      <h3 class="mb-3">Add Staff Member</h3>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Full Name <span class="required-mark">*</span></label>
+            <input type="text" class="form-control" formControlName="fullName" placeholder="Aarav Sharma" />
+            <span class="form-error" *ngIf="form.get('fullName')?.invalid && form.get('fullName')?.touched">{{ getErrorMessage('fullName') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Phone Number <span class="required-mark">*</span></label>
+            <input type="tel" class="form-control" formControlName="phone" placeholder="+91 9876543210" />
+            <span class="form-error" *ngIf="form.get('phone')?.invalid && form.get('phone')?.touched">{{ getErrorMessage('phone') }}</span>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Email Address <span class="required-mark">*</span></label>
+            <input type="email" class="form-control" formControlName="email" placeholder="staff@airline.com" />
+            <span class="form-error" *ngIf="form.get('email')?.invalid && form.get('email')?.touched">{{ getErrorMessage('email') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Airline <span class="required-mark">*</span></label>
+            <select class="form-control" formControlName="airlineId" [disabled]="airlineLoading || activeAirlines.length === 0">
+              <option value="" disabled hidden>{{ airlineLoading ? 'Loading active airlines...' : 'Select an airline' }}</option>
+              <option *ngFor="let airline of activeAirlines" [value]="airline.airlineId">{{ airline.name }}</option>
+            </select>
+            <span class="form-error" *ngIf="form.get('airlineId')?.invalid && form.get('airlineId')?.touched">Select an active airline</span>
+            <p class="text-muted text-sm" *ngIf="!airlineLoading && activeAirlines.length === 0">No active airlines available.</p>
+          </div>
+
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Nationality</label>
+            <input type="text" class="form-control" formControlName="nationality" placeholder="Indian" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Temporary Password <span class="required-mark">*</span></label>
+          <input type="password" class="form-control" formControlName="password" placeholder="Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special" />
+          <span class="form-error" *ngIf="form.get('password')?.invalid && form.get('password')?.touched">{{ getErrorMessage('password') }}</span>
+        </div>
+
+        <div class="flex gap-2 items-center wrap">
+          <button type="submit" class="btn btn-primary" [disabled]="submitting || airlineLoading || activeAirlines.length === 0">
+            {{submitting ? 'Creating...' : 'Add Staff'}}
+          </button>
+          <button type="button" class="btn btn-ghost" (click)="toggleForm()">Close</button>
+          <p class="text-muted text-sm">New accounts are created with the staff role automatically.</p>
+        </div>
+      </form>
+    </div>
+
+    <app-loading-spinner *ngIf="loading" message="Loading staff members..."></app-loading-spinner>
+
+    <div class="table-wrapper" *ngIf="!loading && staffMembers.length > 0">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Nationality</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let staff of staffMembers">
+            <td class="font-semibold">{{staff.fullName}}</td>
+            <td>{{staff.email}}</td>
+            <td>{{staff.phone || '-'}}</td>
+            <td>{{staff.nationality || '-'}}</td>
+            <td><span class="badge" [ngClass]="getStatusClass(staff)">{{getStaffStatus(staff)}}</span></td>
+            <td>
+              <div class="flex gap-1 wrap">
+                <button
+                  class="btn btn-ghost btn-sm"
+                  *ngIf="getStaffStatus(staff) === 'ACTIVE'"
+                  (click)="openConfirm(staff, 'deactivate')"
+                >
+                  Deactivate
+                </button>
+                <button class="btn btn-danger btn-sm" (click)="openConfirm(staff, 'delete')">Delete</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card text-center" *ngIf="!loading && staffMembers.length === 0" style="padding:40px">
+      <p class="text-muted">No staff accounts found. Add the first one above.</p>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-backdrop" *ngIf="selectedStaff && pendingAction" (click)="closeConfirm()">
+  <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="staff-action-title" (click)="$event.stopPropagation()">
+    <div class="confirm-icon">{{pendingAction === 'delete' ? '!' : '?'}}</div>
+    <div>
+      <h3 id="staff-action-title">{{pendingAction === 'delete' ? 'Delete staff account?' : 'Deactivate staff account?'}}</h3>
+      <p class="text-muted">
+        <ng-container *ngIf="pendingAction === 'delete'">
+          {{selectedStaff.fullName}} will be removed permanently.
+        </ng-container>
+        <ng-container *ngIf="pendingAction === 'deactivate'">
+          {{selectedStaff.fullName}} will no longer be able to access staff tools.
+        </ng-container>
+      </p>
+    </div>
+    <div class="confirm-actions">
+      <button type="button" class="btn btn-ghost" [disabled]="actionLoading" (click)="closeConfirm()">Cancel</button>
+      <button type="button" class="btn btn-danger" [disabled]="actionLoading" (click)="confirmAction()">
+        {{actionLoading ? (pendingAction === 'delete' ? 'Deleting...' : 'Deactivating...') : (pendingAction === 'delete' ? 'Delete' : 'Deactivate')}}
+      </button>
+    </div>
+  </div>
+</div>

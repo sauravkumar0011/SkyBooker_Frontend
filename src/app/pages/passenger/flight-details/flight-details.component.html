@@ -1,0 +1,70 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <button class="btn btn-ghost btn-sm mb-3" routerLink="/passenger/flights">Back to Search</button>
+
+    <app-loading-spinner *ngIf="loading" message="Loading flight details..."></app-loading-spinner>
+
+    <div *ngIf="!loading && flight" class="animate-fade-up">
+      <div class="page-header">
+        <h1>Flight {{flight.flightNumber}}</h1>
+        <div class="text-muted text-sm mt-1">{{flight.departureTime | date:'fullDate'}}</div>
+      </div>
+
+      <div class="route-banner card mb-4">
+        <div class="route-point">
+          <div class="route-code">{{flight.originAirportCode}}</div>
+          <div class="route-time">{{flight.departureTime | date:'HH:mm'}}</div>
+          <div class="route-date text-muted text-sm">{{flight.departureTime | date:'mediumDate'}}</div>
+        </div>
+        <div class="route-middle">
+          <div class="route-plane-line">
+            <div class="route-line"></div>
+            <span class="route-plane">✈</span>
+            <div class="route-line"></div>
+          </div>
+          <div class="route-duration text-muted text-sm">{{getDuration()}}</div>
+        </div>
+        <div class="route-point" style="text-align:right">
+          <div class="route-code">{{flight.destinationAirportCode}}</div>
+          <div class="route-time">{{flight.arrivalTime | date:'HH:mm'}}</div>
+          <div class="route-date text-muted text-sm">{{flight.arrivalTime | date:'mediumDate'}}</div>
+        </div>
+      </div>
+
+      <div class="details-grid mb-4">
+        <div class="card info-card">
+          <h3 class="mb-3">Flight Information</h3>
+          <table class="detail-table">
+            <tr><td class="dt-label">Flight Number</td><td class="dt-value">{{flight.flightNumber}}</td></tr>
+            <tr><td class="dt-label">Aircraft Type</td><td class="dt-value">{{flight.aircraftType}}</td></tr>
+            <tr><td class="dt-label">Available Seats</td><td class="dt-value">{{flight.availableSeats ?? 'N/A'}}</td></tr>
+            <tr><td class="dt-label">Duration</td><td class="dt-value">{{getDuration()}}</td></tr>
+          </table>
+        </div>
+
+        <div class="card pricing-card">
+          <div class="pricing-body">
+            <h3>Pricing</h3>
+            <div class="price-display">
+              <div class="price-amount">₹{{flight.basePrice | number}}</div>
+              <div class="text-muted text-sm">Base price per passenger</div>
+              <div class="price-note">Final fare updates after seat selection, taxes, baggage, and meal preferences.</div>
+            </div>
+          </div>
+
+          <div class="pricing-actions">
+            <button class="btn btn-primary btn-full btn-lg" (click)="viewSeats()" [disabled]="flight.status === 'CANCELLED'">
+              View Seat Map
+            </button>
+            <p *ngIf="flight.status === 'CANCELLED'" class="form-error text-center mt-2">This flight is cancelled.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && !flight" class="card text-center">
+      <p class="text-muted">Flight not found.</p>
+      <a routerLink="/passenger/flights" class="btn btn-primary mt-2">Search Again</a>
+    </div>
+  </div>
+</div>

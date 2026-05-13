@@ -1,0 +1,72 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="page-header">
+      <h1>Passenger Details</h1>
+      <p>Enter traveller information for Booking #{{bookingId}}</p>
+    </div>
+
+    <!-- Success -->
+    <div *ngIf="passenger" class="card success-card animate-fade-up">
+      <div class="success-icon">🎫</div>
+      <h2>Ticket Generated!</h2>
+      <p class="text-muted mb-3">Passenger details saved successfully.</p>
+      <div class="ticket-number">{{passenger.ticketNumber}}</div>
+      <p class="text-sm text-muted mb-3">Your ticket number – keep this safe.</p>
+      <div class="passenger-info card-sm" style="background:var(--navy-700);border-radius:var(--radius-md);padding:16px;text-align:left;margin-bottom:20px">
+        <div class="booking-summary-row"><span class="label">Name</span><span class="value">{{passenger.firstName}} {{passenger.lastName}}</span></div>
+        <div class="booking-summary-row"><span class="label">Gender</span><span class="value">{{passenger.gender}}</span></div>
+        <div class="booking-summary-row"><span class="label">Passport</span><span class="value">{{passenger.passportNumber}}</span></div>
+        <div class="booking-summary-row"><span class="label">Nationality</span><span class="value">{{passenger.nationality}}</span></div>
+      </div>
+      <button class="btn btn-primary btn-lg" (click)="goToPayment()">Proceed to Payment →</button>
+    </div>
+
+    <!-- Form -->
+    <div *ngIf="!passenger" class="card animate-fade-up" style="max-width:600px;margin:0 auto">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">First Name</label>
+            <input type="text" class="form-control" formControlName="firstName" placeholder="John" />
+            <span class="form-error" *ngIf="form.get('firstName')?.invalid && form.get('firstName')?.touched">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Name</label>
+            <input type="text" class="form-control" formControlName="lastName" placeholder="Doe" />
+            <span class="form-error" *ngIf="form.get('lastName')?.invalid && form.get('lastName')?.touched">Required</span>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Date of Birth</label>
+            <input type="date" class="form-control" formControlName="dateOfBirth" />
+            <span class="form-error" *ngIf="form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Gender</label>
+            <select class="form-control" formControlName="gender">
+              <option *ngFor="let g of genders" [value]="g">{{g | titlecase}}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Passport Number</label>
+          <input type="text" class="form-control" formControlName="passportNumber" placeholder="A1234567" />
+          <span class="form-error" *ngIf="form.get('passportNumber')?.invalid && form.get('passportNumber')?.touched">Required</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nationality</label>
+          <input type="text" class="form-control" formControlName="nationality" placeholder="Indian" />
+          <span class="form-error" *ngIf="form.get('nationality')?.invalid && form.get('nationality')?.touched">Required</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" [disabled]="loading">
+          {{loading ? 'Saving...' : 'Save Passenger Details'}}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

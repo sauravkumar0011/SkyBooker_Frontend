@@ -1,0 +1,4 @@
+/* manage-airports - inherits global styles */
+.required-mark { color: #ff6b6b; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media(max-width:600px) { .grid-3 { grid-template-columns: 1fr; } }

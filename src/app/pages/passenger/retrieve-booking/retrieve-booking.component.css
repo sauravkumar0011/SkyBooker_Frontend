@@ -1,0 +1,31 @@
+.retrieve-booking-card {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.pnr-input {
+  text-transform: uppercase;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+}
+
+.booking-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 9px 0;
+  font-size: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.booking-summary-row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  color: var(--slate-400);
+}
+
+.value {
+  font-weight: 600;
+  color: var(--white);
+}

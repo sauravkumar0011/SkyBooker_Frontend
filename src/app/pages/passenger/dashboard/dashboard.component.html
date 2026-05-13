@@ -1,0 +1,85 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="page-header">
+      <h1>Welcome back, {{auth.getFullName()}} ✈</h1>
+      <p>Here's your travel overview and recent activity.</p>
+    </div>
+
+    <div class="grid-4 mb-4">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(34,211,238,0.1)">🎫</div>
+        <div class="stat-info">
+          <h3>{{bookings.length}}</h3>
+          <p>Total Bookings</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(16,185,129,0.1)">✅</div>
+        <div class="stat-info">
+          <h3>{{bookings | statusFilter:'CONFIRMED'}}</h3>
+          <p>Confirmed</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(245,158,11,0.1)">⏳</div>
+        <div class="stat-info">
+          <h3>{{bookings | statusFilter:'CANCELLED'}}</h3>
+          <p>Cancelled</p>
+        </div>
+      </div>
+      <a routerLink="/passenger/notifications" class="stat-card stat-link">
+        <div class="stat-icon" style="background:rgba(239,68,68,0.1)">🔔</div>
+        <div class="stat-info">
+          <h3>{{unreadCount}}</h3>
+          <p>Unread Alerts</p>
+        </div>
+      </a>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="card">
+        <h3 class="mb-3">Quick Actions</h3>
+        <div class="quick-actions">
+          <a routerLink="/passenger/flights" class="action-btn">
+            <span class="action-icon">🔍</span>
+            <span>Search Flights</span>
+          </a>
+          <a routerLink="/passenger/my-bookings" class="action-btn">
+            <span class="action-icon">📋</span>
+            <span>My Bookings</span>
+          </a>
+          <a routerLink="/retrieve-booking" class="action-btn">
+            <span class="action-icon">📌</span>
+            <span>Retrieve by PNR</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="flex justify-between items-center mb-3">
+          <h3>Recent Bookings</h3>
+          <a routerLink="/passenger/my-bookings" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+
+        <app-loading-spinner *ngIf="loadingBookings" message="Loading bookings..."></app-loading-spinner>
+
+        <div *ngIf="!loadingBookings">
+          <div *ngIf="bookings.length === 0" class="empty-state">
+            <p class="text-muted text-center">No bookings yet. <a routerLink="/passenger/flights" class="text-cyan">Search flights</a> to get started.</p>
+          </div>
+
+          <div class="booking-mini" *ngFor="let b of bookings.slice(0, 4)">
+            <div>
+              <div class="font-semibold text-sm">PNR: {{b.pnrCode}}</div>
+              <div class="text-muted text-xs">Flight {{getFlightLabel(b)}} &#183; Booked {{b.bookedAt | date:'medium'}}</div>
+            </div>
+            <div class="flex items-center gap-1">
+              <span class="badge {{getStatusClass(b.status)}}">{{getDisplayStatus(b.status)}}</span>
+              <span class="font-semibold text-sm text-cyan">&#8377;{{b.totalFare | number}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

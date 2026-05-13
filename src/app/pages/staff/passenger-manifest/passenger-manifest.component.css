@@ -1,0 +1,22 @@
+.manifest-form-card {
+  max-width: 460px;
+}
+
+.manifest-form-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.manifest-form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.manifest-submit {
+  height: 44px;
+}
+
+.manifest-title {
+  padding: 16px 16px 0;
+}

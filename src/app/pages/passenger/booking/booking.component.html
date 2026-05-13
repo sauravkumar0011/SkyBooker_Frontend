@@ -1,0 +1,155 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <button class="btn btn-ghost btn-sm mb-3" [routerLink]="['/passenger/seats', flightId]">Back to Seats</button>
+
+    <div class="page-header">
+      <h1>Complete Your Booking</h1>
+      <p>Fill in travel and passenger details, calculate fare once, then continue to payment.</p>
+    </div>
+
+    <div class="booking-grid">
+      <div class="card">
+        <h3 class="mb-3">Travel Preferences</h3>
+        <form [formGroup]="form" (ngSubmit)="onContinue()">
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Trip Type</label>
+              <select class="form-control" formControlName="tripType">
+                <option *ngFor="let t of tripTypes" [value]="t">{{t | titlecase}}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Meal Preference</label>
+              <select class="form-control" formControlName="mealPreference">
+                <option *ngFor="let m of mealOptions" [value]="m">{{m | titlecase}}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Luggage Weight (kg)</label>
+            <input type="number" class="form-control" formControlName="luggageKg" min="0" max="50" />
+            <span class="form-hint">Standard allowance: 15kg. Additional charges may apply.</span>
+            <span class="form-error" *ngIf="form.get('luggageKg')?.invalid && form.get('luggageKg')?.touched">0-50 kg allowed</span>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Contact Email</label>
+              <input type="email" class="form-control" formControlName="contactEmail" />
+              <span class="form-error" *ngIf="form.get('contactEmail')?.invalid && form.get('contactEmail')?.touched">Valid email required</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Phone</label>
+              <input type="tel" class="form-control" formControlName="contactPhone" placeholder="+91 9876543210" />
+              <span class="form-error" *ngIf="form.get('contactPhone')?.invalid && form.get('contactPhone')?.touched">Valid phone number required</span>
+            </div>
+          </div>
+
+          <div class="divider-block">
+            <h3 class="mb-3">Passenger Details</h3>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">First Name</label>
+              <input type="text" class="form-control" formControlName="firstName" placeholder="John" />
+              <span class="form-error" *ngIf="form.get('firstName')?.invalid && form.get('firstName')?.touched">Required</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Last Name</label>
+              <input type="text" class="form-control" formControlName="lastName" placeholder="Doe" />
+              <span class="form-error" *ngIf="form.get('lastName')?.invalid && form.get('lastName')?.touched">Required</span>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Date of Birth</label>
+              <input type="date" class="form-control" formControlName="dateOfBirth" />
+              <span class="form-error" *ngIf="form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched">Required</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Gender</label>
+              <select class="form-control" formControlName="gender">
+                <option *ngFor="let g of genders" [value]="g">{{g | titlecase}}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Passport Number</label>
+              <input type="text" class="form-control" formControlName="passportNumber" placeholder="A1234567" />
+              <span class="form-error" *ngIf="form.get('passportNumber')?.invalid && form.get('passportNumber')?.touched">Required</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nationality</label>
+              <input type="text" class="form-control" formControlName="nationality" placeholder="Indian" />
+              <span class="form-error" *ngIf="form.get('nationality')?.invalid && form.get('nationality')?.touched">Required</span>
+            </div>
+          </div>
+
+          <div class="booking-actions">
+            <button type="button" class="btn btn-ghost btn-lg" [disabled]="loadingDetails || loadingFare" (click)="calculateFare()">
+              {{loadingFare ? 'Calculating Fare...' : 'Calculate Fare'}}
+            </button>
+            <button type="submit" class="btn btn-primary btn-lg" [disabled]="loading || loadingDetails || !fareSummary">
+              {{loading ? 'Creating Booking...' : 'Continue to Payment'}}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="fare-summary">
+        <div class="card">
+          <h3 class="mb-3">Fare Summary</h3>
+          <app-loading-spinner *ngIf="loadingDetails" message="Loading flight info..."></app-loading-spinner>
+          <app-loading-spinner *ngIf="!loadingDetails && loadingFare" message="Calculating fare..."></app-loading-spinner>
+
+          <div *ngIf="!loadingDetails && flight">
+            <div *ngIf="fareSummary" class="fare-total-card">
+              <div class="fare-total-topline">
+                <div>
+                  <div class="fare-total-label">Estimated Total</div>
+                  <p class="fare-total-note">Includes taxes and your selected booking preferences.</p>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" (click)="toggleFareDetails()">
+                  {{showFareDetails ? 'Hide Details' : 'View Details'}}
+                </button>
+              </div>
+              <div class="fare-total-value">&#8377;{{fareSummary.totalFare | number}}</div>
+            </div>
+
+            <div *ngIf="fareSummary && showFareDetails" class="booking-summary mt-3">
+              <div class="booking-summary-row">
+                <span class="label">Base Fare</span>
+                <span class="value">&#8377;{{fareSummary.baseFare | number}}</span>
+              </div>
+              <div class="booking-summary-row">
+                <span class="label">Taxes (18%)</span>
+                <span class="value">&#8377;{{fareSummary.taxes | number}}</span>
+              </div>
+              <div class="booking-summary-row">
+                <span class="label">Baggage Charge</span>
+                <span class="value">&#8377;{{fareSummary.baggageCharge | number}}</span>
+              </div>
+              <div class="booking-summary-row">
+                <span class="label">Meal Charge</span>
+                <span class="value">&#8377;{{fareSummary.mealCharge | number}}</span>
+              </div>
+              <div class="booking-summary-row total">
+                <span class="label">Total</span>
+                <span class="value">&#8377;{{fareSummary.totalFare | number}}</span>
+              </div>
+            </div>
+
+            <div *ngIf="!fareSummary && !loadingFare" class="fare-placeholder mt-3">
+              <p class="text-muted">Fill all booking and passenger details, then click <strong>Calculate Fare</strong>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

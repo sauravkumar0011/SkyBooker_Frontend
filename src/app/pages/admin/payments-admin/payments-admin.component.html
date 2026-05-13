@@ -1,0 +1,71 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="page-header"><h1>Payments & Revenue</h1><p>Monitor transactions and revenue analytics.</p></div>
+
+    <div class="card mb-4">
+      <h3 class="mb-3">Revenue Report</h3>
+      <form [formGroup]="revenueForm" (ngSubmit)="fetchRevenue()">
+        <div class="rev-grid">
+          <div class="form-group">
+            <label class="form-label">Start Date & Time</label>
+            <input type="datetime-local" class="form-control" formControlName="start" />
+            <span class="form-error" *ngIf="revenueForm.get('start')?.invalid && revenueForm.get('start')?.touched">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">End Date & Time</label>
+            <input type="datetime-local" class="form-control" formControlName="end" />
+            <span class="form-error" *ngIf="revenueForm.get('end')?.invalid && revenueForm.get('end')?.touched">Required</span>
+          </div>
+          <div class="rev-action">
+            <button type="submit" class="btn btn-primary" [disabled]="revenueLoading">
+              {{revenueLoading ? 'Loading...' : 'Get Revenue'}}
+            </button>
+          </div>
+        </div>
+      </form>
+      <div class="revenue-result" *ngIf="revenue">
+        <div class="rev-stat">
+          <div class="rev-label">Total Revenue</div>
+          <div class="rev-value text-cyan">&#8377;{{revenue.totalRevenue | number}}</div>
+        </div>
+        <div class="rev-stat">
+          <div class="rev-label">Transactions</div>
+          <div class="rev-value">{{revenue.totalTransactions}}</div>
+        </div>
+        <div class="rev-stat">
+          <div class="rev-label">Period</div>
+          <div class="rev-value text-sm">{{revenue.startDate | date:'short'}} - {{revenue.endDate | date:'short'}}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 mb-3 flex-wrap">
+      <span class="text-muted text-sm">Filter by status:</span>
+      <button *ngFor="let s of statuses"
+        class="btn btn-sm" [class.btn-primary]="selectedStatus===s" [class.btn-ghost]="selectedStatus!==s"
+        (click)="selectedStatus=s; loadByStatus()">{{s}}</button>
+    </div>
+
+    <app-loading-spinner *ngIf="loading" message="Loading payments..."></app-loading-spinner>
+
+    <div class="table-wrapper" *ngIf="!loading && payments.length > 0">
+      <table>
+        <thead><tr><th>Booking</th><th>Amount</th><th>Method</th><th>Reference</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let p of payments">
+            <td>#{{p.bookingId}}</td>
+            <td class="font-semibold text-cyan">&#8377;{{p.amount | number}}</td>
+            <td>{{p.paymentMode || p.paymentMethod || '-'}}</td>
+            <td class="text-sm text-muted">{{p.razorpayPaymentId || p.transactionId || p.paymentId}}</td>
+            <td><span class="badge {{getStatusClass(p.status)}}">{{p.status}}</span></td>
+            <td class="text-sm">{{(p.paidAt || p.processedAt || p.initiatedAt) | date:'medium'}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card text-center" *ngIf="!loading && payments.length === 0" style="padding:40px">
+      <p class="text-muted">No {{selectedStatus}} payments found.</p>
+    </div>
+  </div>
+</div>

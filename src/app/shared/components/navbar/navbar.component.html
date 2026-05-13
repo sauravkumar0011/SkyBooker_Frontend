@@ -1,0 +1,99 @@
+<nav class="navbar">
+  <div class="container nav-inner">
+    <!-- Brand -->
+    <a routerLink="/" class="nav-brand" (click)="closeMenu()">
+      <span class="brand-icon">✈</span>
+      <span class="brand-text">Sky<span class="brand-accent">Booker</span></span>
+    </a>
+
+    <!-- Desktop Nav -->
+    <div class="nav-links desktop-only">
+      <ng-container *ngIf="!auth.isLoggedIn()">
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Home</a>
+        <a routerLink="/passenger/flights">Search Flights</a>
+        <a routerLink="/retrieve-booking">Track Booking</a>
+        <a routerLink="/login" class="btn btn-secondary btn-sm nav-auth-btn">Login</a>
+        <a routerLink="/register" class="btn btn-secondary btn-sm nav-auth-btn">Sign Up</a>
+      </ng-container>
+
+      <ng-container *ngIf="auth.isLoggedIn() && auth.isPassenger()">
+        <a routerLink="/passenger/dashboard">Dashboard</a>
+        <a routerLink="/passenger/flights">Search Flights</a>
+        <a routerLink="/passenger/my-bookings">My Bookings</a>
+        <a routerLink="/passenger/notifications" class="notif-link">
+          Notifications
+          <span class="notif-badge" *ngIf="unreadCount > 0">{{unreadCount}}</span>
+        </a>
+      </ng-container>
+
+      <ng-container *ngIf="auth.isLoggedIn() && auth.isStaff()">
+        <a routerLink="/staff/dashboard">Dashboard</a>
+        <a routerLink="/staff/flights">Manage Flights</a>
+        <a routerLink="/staff/seats">Manage Seats</a>
+      </ng-container>
+
+      <ng-container *ngIf="auth.isLoggedIn() && auth.isAdmin()">
+        <a routerLink="/admin/dashboard">Dashboard</a>
+        <a routerLink="/admin/airlines">Airlines</a>
+        <a routerLink="/admin/airports">Airports</a>
+        <a routerLink="/admin/staff">Staff</a>
+        <a routerLink="/admin/payments">Payments</a>
+      </ng-container>
+
+      <ng-container *ngIf="auth.isLoggedIn()">
+        <div class="nav-user">
+          <div class="user-avatar">{{userInitials}}</div>
+          <div class="user-copy">
+            <span class="user-name">{{displayName}}</span>
+            <span class="user-role">{{roleLabel}}</span>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" (click)="logout()">Logout</button>
+      </ng-container>
+    </div>
+
+    <!-- Mobile Hamburger -->
+    <button class="hamburger mobile-only" (click)="toggleMenu()" [class.open]="isMenuOpen">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" [class.open]="isMenuOpen">
+    <div class="mobile-user-card" *ngIf="auth.isLoggedIn()">
+      <div class="user-avatar">{{userInitials}}</div>
+      <div class="user-copy">
+        <span class="user-name">{{displayName}}</span>
+        <span class="user-role">{{roleLabel}}</span>
+      </div>
+    </div>
+
+    <ng-container *ngIf="!auth.isLoggedIn()">
+      <a routerLink="/" (click)="closeMenu()">Home</a>
+      <a routerLink="/passenger/flights" (click)="closeMenu()">Search Flights</a>
+      <a routerLink="/retrieve-booking" (click)="closeMenu()">Track Booking</a>
+      <a routerLink="/login" (click)="closeMenu()">Login</a>
+      <a routerLink="/register" (click)="closeMenu()">Sign Up</a>
+    </ng-container>
+
+    <ng-container *ngIf="auth.isLoggedIn()">
+      <a [routerLink]="dashboardRoute" (click)="closeMenu()">Dashboard</a>
+      <ng-container *ngIf="auth.isPassenger()">
+        <a routerLink="/passenger/flights" (click)="closeMenu()">Search Flights</a>
+        <a routerLink="/passenger/my-bookings" (click)="closeMenu()">My Bookings</a>
+        <a routerLink="/passenger/notifications" (click)="closeMenu()">Notifications</a>
+      </ng-container>
+      <ng-container *ngIf="auth.isStaff()">
+        <a routerLink="/staff/flights" (click)="closeMenu()">Manage Flights</a>
+        <a routerLink="/staff/seats" (click)="closeMenu()">Manage Seats</a>
+      </ng-container>
+      <ng-container *ngIf="auth.isAdmin()">
+        <a routerLink="/admin/airlines" (click)="closeMenu()">Airlines</a>
+        <a routerLink="/admin/airports" (click)="closeMenu()">Airports</a>
+        <a routerLink="/admin/staff" (click)="closeMenu()">Staff</a>
+        <a routerLink="/admin/payments" (click)="closeMenu()">Payments</a>
+      </ng-container>
+      <button class="btn btn-ghost btn-sm" (click)="logout()">Logout</button>
+    </ng-container>
+  </div>
+</nav>

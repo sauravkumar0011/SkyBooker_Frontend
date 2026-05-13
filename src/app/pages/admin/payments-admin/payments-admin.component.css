@@ -1,0 +1,9 @@
+.rev-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; align-items: end; margin-bottom: 16px; }
+.rev-grid .form-group { margin-bottom: 0; }
+.rev-action { display: flex; align-items: flex-end; }
+.rev-action .btn { min-height: 44px; }
+.revenue-result { display: flex; gap: 32px; flex-wrap: wrap; padding: 20px; background: var(--navy-700); border-radius: var(--radius-md); margin-top: 16px; }
+.rev-stat { }
+.rev-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--slate-400); margin-bottom: 4px; }
+.rev-value { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--white); }
+@media(max-width:700px) { .rev-grid { grid-template-columns: 1fr; } .rev-action .btn { width: 100%; } }

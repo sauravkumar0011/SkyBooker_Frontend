@@ -1,0 +1,87 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="page-header notifications-header">
+      <div>
+        <h1>
+          Notifications
+          <span class="badge badge-cyan" *ngIf="unreadCount > 0">{{unreadCount}} unread</span>
+        </h1>
+        <p>Keep track of booking updates, payment alerts, and flight activity.</p>
+      </div>
+      <button
+        class="btn btn-ghost btn-sm"
+        *ngIf="unreadCount > 0"
+        [disabled]="markingAllRead"
+        (click)="markAllRead()">
+        {{markingAllRead ? 'Updating...' : 'Mark All As Read'}}
+      </button>
+    </div>
+
+    <app-loading-spinner *ngIf="loading" message="Loading notifications..."></app-loading-spinner>
+
+    <div *ngIf="!loading">
+      <div *ngIf="notifications.length === 0" class="card text-center notifications-empty">
+        <div class="empty-bell">🔔</div>
+        <h3 class="mb-2">All caught up</h3>
+        <p class="text-muted">No notifications yet.</p>
+      </div>
+
+      <div class="notif-list" *ngIf="notifications.length > 0">
+        <article
+          class="notif-card card"
+          [class.unread]="!notification.isRead"
+          *ngFor="let notification of notifications; trackBy: trackByNotificationId">
+          <div class="notif-card-top">
+            <div class="notif-meta">
+              <span class="notif-pill" [ngClass]="getCategoryClass(notification)">
+                {{getCategoryLabel(notification)}}
+              </span>
+              <span class="notif-state unread" *ngIf="!notification.isRead">Unread</span>
+              <span class="notif-state read" *ngIf="notification.isRead">Read</span>
+            </div>
+            <span class="notification-time">{{notification.sentAt | date:'medium'}}</span>
+          </div>
+
+          <h3 class="notif-title">{{notification.title}}</h3>
+          <p class="notif-body">{{formatMessage(notification.message)}}</p>
+
+          <div class="notif-actions">
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm"
+              *ngIf="!notification.isRead"
+              (click)="markRead(notification)">
+              Mark As Read
+            </button>
+            <button
+              type="button"
+              class="btn btn-danger btn-sm"
+              (click)="openDeleteConfirm(notification)">
+              Delete
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-backdrop" *ngIf="deleteTarget" (click)="closeDeleteConfirm()">
+  <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-notification-title" (click)="$event.stopPropagation()">
+    <div class="confirm-icon">!</div>
+    <div>
+      <h3 id="delete-notification-title">Delete this notification?</h3>
+      <p class="text-muted">
+        <strong>{{deleteTarget.title}}</strong> will be removed from your notification board.
+      </p>
+    </div>
+    <div class="confirm-actions">
+      <button type="button" class="btn btn-ghost" [disabled]="deletingId === deleteTarget.notificationId" (click)="closeDeleteConfirm()">
+        Keep It
+      </button>
+      <button type="button" class="btn btn-danger" [disabled]="deletingId === deleteTarget.notificationId" (click)="confirmDelete()">
+        {{deletingId === deleteTarget.notificationId ? 'Deleting...' : 'Delete Notification'}}
+      </button>
+    </div>
+  </div>
+</div>

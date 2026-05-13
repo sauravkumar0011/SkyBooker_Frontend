@@ -1,0 +1,102 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="page-header">
+      <h1>My Bookings</h1>
+      <p>Manage all your flight reservations in one place.</p>
+    </div>
+
+    <app-loading-spinner *ngIf="loading" message="Loading your bookings..."></app-loading-spinner>
+
+    <div *ngIf="!loading">
+      <div *ngIf="bookings.length === 0" class="empty-state card text-center">
+        <div style="font-size:52px;margin-bottom:16px">✈</div>
+        <h3 class="mb-2">No bookings yet</h3>
+        <p class="text-muted mb-3">You haven't made any flight bookings yet.</p>
+        <a routerLink="/passenger/flights" class="btn btn-primary">Search Flights</a>
+      </div>
+
+      <div class="bookings-list" *ngIf="bookings.length > 0">
+        <div class="booking-card card" *ngFor="let b of bookings">
+          <div class="booking-header">
+            <div>
+              <div class="pnr">PNR: <span class="pnr-code">{{b.pnrCode}}</span></div>
+              <div class="text-sm text-muted">Booking #{{b.bookingId}} &#183; {{b.bookedAt | date:'medium'}}</div>
+            </div>
+            <span class="badge {{getStatusClass(b.status)}}">{{b.status}}</span>
+          </div>
+
+          <div class="booking-body">
+            <div class="booking-detail">
+              <span class="detail-label">Flight</span>
+              <span class="detail-value">{{getFlightLabel(b)}}</span>
+            </div>
+            <div class="booking-detail">
+              <span class="detail-label">Seat No</span>
+              <span class="detail-value">{{getSeatLabel(b)}}</span>
+            </div>
+            <div class="booking-detail">
+              <span class="detail-label">Trip Type</span>
+              <span class="detail-value">{{b.tripType | titlecase}}</span>
+            </div>
+            <div class="booking-detail">
+              <span class="detail-label">Meal</span>
+              <span class="detail-value">{{b.mealPreference | titlecase}}</span>
+            </div>
+            <div class="booking-detail">
+              <span class="detail-label">Luggage</span>
+              <span class="detail-value">{{b.luggageKg}} kg</span>
+            </div>
+            <div class="booking-detail">
+              <span class="detail-label">Total Fare</span>
+              <span class="detail-value fare">&#8377;{{b.totalFare | number}}</span>
+            </div>
+          </div>
+
+          <div class="booking-footer">
+            <button
+              class="btn btn-primary btn-sm"
+              *ngIf="b.status === 'PENDING'"
+              (click)="goToPayment(b)">
+              Pay Now
+            </button>
+            <button
+              class="btn btn-secondary btn-sm"
+              *ngIf="b.status === 'CONFIRMED' || b.status === 'COMPLETED'"
+              (click)="downloadTicket(b)"
+              [disabled]="downloadingTicketId === b.bookingId">
+              {{downloadingTicketId === b.bookingId ? 'Preparing Ticket...' : 'Download Ticket'}}
+            </button>
+            <button
+              class="btn btn-danger btn-sm"
+              *ngIf="b.status === 'PENDING' || b.status === 'CONFIRMED'"
+              (click)="openCancelConfirm(b)"
+              [disabled]="cancellingId === b.bookingId">
+              {{cancellingId === b.bookingId ? 'Cancelling...' : 'Cancel'}}
+            </button>
+            <span class="text-muted text-sm" *ngIf="b.status === 'CANCELLED'">This booking was cancelled.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-backdrop" *ngIf="cancelTarget" (click)="closeCancelConfirm()">
+  <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="cancel-booking-title" (click)="$event.stopPropagation()">
+    <div class="confirm-icon">!</div>
+    <div>
+      <h3 id="cancel-booking-title">Cancel this booking?</h3>
+      <p class="text-muted">
+        Booking <strong>{{cancelTarget.pnrCode}}</strong> will be cancelled and this action cannot be undone.
+      </p>
+    </div>
+    <div class="confirm-actions">
+      <button type="button" class="btn btn-ghost" [disabled]="cancellingId === cancelTarget.bookingId" (click)="closeCancelConfirm()">
+        Keep Booking
+      </button>
+      <button type="button" class="btn btn-danger" [disabled]="cancellingId === cancelTarget.bookingId" (click)="confirmCancelBooking()">
+        {{cancellingId === cancelTarget.bookingId ? 'Cancelling...' : 'Yes, Cancel Booking'}}
+      </button>
+    </div>
+  </div>
+</div>

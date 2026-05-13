@@ -1,0 +1,11 @@
+main {
+  min-height: calc(100vh - 72px);
+  display: flex;
+  flex-direction: column;
+}
+
+main.auth-main {
+  min-height: calc(100vh - 72px);
+  padding-top: 28px;
+  box-sizing: border-box;
+}

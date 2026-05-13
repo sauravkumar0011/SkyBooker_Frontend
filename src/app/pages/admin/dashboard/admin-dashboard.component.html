@@ -1,0 +1,53 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="page-header">
+      <h1>Admin Dashboard</h1>
+      <p>Manage the entire SkyBooker platform from one place.</p>
+    </div>
+
+    <div class="grid-4 mb-4">
+      <div class="stat-card">
+        <div class="stat-icon icon-airlines">&#9992;</div>
+        <div class="stat-info"><h3>{{ airlines.length }}</h3><p>Airlines</p></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-airports">&#127970;</div>
+        <div class="stat-info"><h3>{{ airports.length }}</h3><p>Airports</p></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-payments">&#128179;</div>
+        <div class="stat-info"><h3>{{ payments.length }}</h3><p>Payments</p></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-revenue">&#128176;</div>
+        <div class="stat-info">
+          <h3>{{ totalRevenue | currency:'INR':'symbol':'1.0-0' }}</h3>
+          <p>Total Revenue</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 class="mb-3">Admin Navigation</h3>
+        <div class="admin-link-list">
+          <a routerLink="/admin/airlines" class="admin-link">Manage Airlines</a>
+          <a routerLink="/admin/airports" class="admin-link">Manage Airports</a>
+          <a routerLink="/admin/staff" class="admin-link">Manage Staff</a>
+          <a routerLink="/admin/payments" class="admin-link">View Payments &amp; Revenue</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3 class="mb-3">Active Airlines</h3>
+        <div *ngFor="let a of activeAirlines.slice(0, 6)" class="airline-row">
+          <div>
+            <span class="font-semibold">{{ a.name }}</span>
+            <span class="text-muted text-xs ml-1">({{ a.iataCode }})</span>
+          </div>
+          <span class="badge badge-success">{{ getAirlineStatus(a) }}</span>
+        </div>
+        <p class="text-muted text-sm" *ngIf="activeAirlines.length === 0">No active airlines yet.</p>
+      </div>
+    </div>
+  </div>
+</div>

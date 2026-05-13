@@ -1,0 +1,51 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="page-header">
+      <h1>Staff Dashboard</h1>
+      <p>Manage flights, seats, and view passenger manifests.</p>
+    </div>
+
+    <div class="grid-4 mb-4">
+      <div class="stat-card">
+        <div class="stat-icon icon-flight">✈️</div>
+        <div class="stat-info"><h3>{{ flights.length }}</h3><p>Total Flights</p></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-on-time">🟢</div>
+        <div class="stat-info"><h3>{{ onTime }}</h3><p>On Time</p></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-delayed">🟡</div>
+        <div class="stat-info"><h3>{{ delayed }}</h3><p>Delayed</p></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-cancelled">🔴</div>
+        <div class="stat-info"><h3>{{ cancelled }}</h3><p>Cancelled</p></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 class="mb-3">Quick Actions</h3>
+        <div class="action-list">
+          <a routerLink="/staff/add-flight" class="action-link">Add New Flight</a>
+          <a routerLink="/staff/flights" class="action-link">Manage Flights</a>
+          <a routerLink="/staff/seats" class="action-link">Manage Seats</a>
+          <a routerLink="/staff/manifest" class="action-link">Passenger Manifest</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3 class="mb-3">Recent Flights</h3>
+        <app-loading-spinner *ngIf="loading"></app-loading-spinner>
+        <div *ngFor="let f of flights.slice(0, 5)" class="flight-mini">
+          <div>
+            <div class="font-semibold text-sm">{{ f.flightNumber }}</div>
+            <div class="text-xs text-muted">{{ f.originAirportCode }} &rarr; {{ f.destinationAirportCode }}</div>
+          </div>
+          <span class="badge {{ getStatusClass(f.status) }}">{{ f.status }}</span>
+        </div>
+        <p class="text-muted text-sm" *ngIf="!loading && flights.length === 0">No flights yet.</p>
+      </div>
+    </div>
+  </div>
+</div>

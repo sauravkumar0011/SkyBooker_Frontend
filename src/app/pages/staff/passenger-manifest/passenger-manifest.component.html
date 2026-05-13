@@ -1,0 +1,56 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="page-header">
+      <h1>Passenger Manifest</h1>
+      <p>View all passengers for a specific booking.</p>
+    </div>
+
+    <div class="card manifest-form-card mb-4">
+      <form [formGroup]="form" (ngSubmit)="load()">
+        <div class="manifest-form-row">
+          <div class="form-group manifest-form-group">
+            <label class="form-label">Booking ID</label>
+            <input type="number" class="form-control" formControlName="bookingId" placeholder="e.g. 42" />
+          </div>
+          <button type="submit" class="btn btn-primary manifest-submit" [disabled]="loading">
+            {{ loading ? 'Loading...' : 'Fetch' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <app-loading-spinner *ngIf="loading" message="Loading manifest..."></app-loading-spinner>
+
+    <div *ngIf="!loading && searched">
+      <div *ngIf="passengers.length === 0" class="alert alert-warning">No passengers found for this booking.</div>
+
+      <div class="table-wrapper" *ngIf="passengers.length > 0">
+        <h3 class="manifest-title">{{ passengers.length }} Passenger(s) &ndash; Booking #{{ form.value.bookingId }}</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Ticket #</th>
+              <th>Name</th>
+              <th>DOB</th>
+              <th>Gender</th>
+              <th>Passport</th>
+              <th>Nationality</th>
+              <th>Seat</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of passengers">
+              <td><span class="font-semibold text-cyan">{{ p.ticketNumber }}</span></td>
+              <td>{{ p.firstName }} {{ p.lastName }}</td>
+              <td>{{ p.dateOfBirth | date:'mediumDate' }}</td>
+              <td>{{ p.gender | titlecase }}</td>
+              <td>{{ p.passportNumber }}</td>
+              <td>{{ p.nationality }}</td>
+              <td>#{{ p.seatId }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

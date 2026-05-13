@@ -1,0 +1,368 @@
+.search-panel {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(234, 245, 255, 0.94) 100%);
+  border: 1px solid rgba(16, 40, 68, 0.08);
+}
+
+.search-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 85% 20%, rgba(31, 183, 227, 0.12), transparent 22%),
+    radial-gradient(circle at 92% 82%, rgba(79, 141, 255, 0.12), transparent 18%);
+  pointer-events: none;
+}
+
+.search-plane-art {
+  position: absolute;
+  top: -18px;
+  right: -18px;
+  width: min(34vw, 300px);
+  opacity: 0.16;
+  pointer-events: none;
+  filter: drop-shadow(0 18px 30px rgba(66, 123, 181, 0.16));
+}
+
+.search-bar {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 16px;
+  align-items: start;
+}
+
+.search-bar .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-action {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-width: 180px;
+}
+
+.search-action-label {
+  min-height: 20px;
+  margin-bottom: 8px;
+  color: #5f7692;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.search-submit {
+  height: 44px;
+  padding: 0 28px;
+  white-space: nowrap;
+}
+
+.results-container {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.filters-sidebar {
+  background: var(--navy-800);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  height: fit-content;
+  position: sticky;
+  top: 20px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.filters-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(34, 211, 238, 0.3);
+}
+
+.filter-section {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.filter-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.filter-header {
+  cursor: pointer;
+  user-select: none;
+  padding: 10px 0;
+  transition: all var(--transition);
+  border-radius: 6px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.filter-header:hover {
+  background: rgba(34, 211, 238, 0.08);
+}
+
+.filter-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--slate-200);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+  transition: color var(--transition);
+}
+
+.filter-header:hover .filter-section-title {
+  color: var(--cyan-400);
+}
+
+.filter-toggle-icon {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--slate-400);
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transform: rotate(-90deg);
+  margin-left: 8px;
+}
+
+.filter-toggle-icon.expanded {
+  transform: rotate(0deg);
+  color: var(--cyan-400);
+}
+
+.filter-content {
+  animation: slideDown 0.3s ease-out;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filter-checkboxes {
+  gap: 8px;
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  margin: 0 -10px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.filter-checkbox:hover {
+  background: rgba(34, 211, 238, 0.1);
+}
+
+.filter-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--cyan-500);
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+.checkbox-label {
+  font-size: 13px;
+  color: var(--slate-300);
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.filter-checkbox:hover .checkbox-label {
+  color: var(--cyan-300);
+}
+
+.filter-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--slate-400);
+  margin-bottom: 4px;
+}
+
+.price-slider {
+  width: 100%;
+  cursor: pointer;
+  accent-color: var(--cyan-500);
+  height: 5px;
+  border-radius: 3px;
+}
+
+.price-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--slate-500);
+  margin-top: 8px;
+}
+
+.filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--slate-400);
+  letter-spacing: 0.08em;
+}
+
+.price-slider {
+  width: 100%;
+  cursor: pointer;
+  accent-color: var(--cyan-500);
+  height: 6px;
+}
+
+.price-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--slate-500);
+  margin-top: 8px;
+}
+
+.filter-count {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+
+.results-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.flight-list { display: flex; flex-direction: column; gap: 14px; }
+
+.flight-card {
+  background: var(--navy-800);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius-md);
+  padding: 22px 26px;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: center;
+  gap: 24px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.flight-card:hover {
+  border-color: rgba(34,211,238,0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.flight-route {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.airport-code {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--white);
+}
+
+.flight-time {
+  font-size: 13px;
+  color: var(--slate-400);
+  margin-top: 2px;
+}
+
+.flight-arrow-wrapper {
+  flex: 1;
+  text-align: center;
+}
+
+.flight-line {
+  position: relative;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan-600), transparent);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flight-plane {
+  color: var(--cyan-400);
+  font-size: 16px;
+  background: var(--navy-800);
+  padding: 0 6px;
+}
+
+.flight-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px
+}
+
+.flight-price {
+  text-align: right;
+}
+
+.price {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--cyan-400);
+}
+
+@media (max-width: 900px) {
+  .search-bar { grid-template-columns: 1fr 1fr; }
+  .search-action { grid-column: 1 / -1; min-width: 0; }
+  .flight-card { grid-template-columns: 1fr; }
+  .flight-price { text-align: left; }
+  .results-container { grid-template-columns: 1fr; }
+  .filters-sidebar { position: static; }
+}
+
+@media (max-width: 500px) {
+  .search-bar { grid-template-columns: 1fr; }
+
+  .search-plane-art {
+    width: 220px;
+    top: 8px;
+    right: -48px;
+  }
+}

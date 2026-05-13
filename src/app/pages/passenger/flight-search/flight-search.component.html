@@ -1,0 +1,161 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="page-header">
+      <h1>Search Flights</h1>
+      <p>Find available flights between any two airports.</p>
+    </div>
+
+    <!-- Search Form -->
+    <div class="card mb-4 search-panel">
+      <img
+        class="search-plane-art"
+        src="assets/illustrations/hero-plane.svg"
+        alt="Passenger airplane illustration"
+      />
+      <form [formGroup]="form" (ngSubmit)="search()">
+        <div class="search-bar">
+          <div class="form-group">
+            <label class="form-label">From (IATA Code)</label>
+            <input type="text" class="form-control" formControlName="origin" placeholder="DEL" style="text-transform:uppercase" />
+            <span class="form-error" *ngIf="form.get('origin')?.invalid && form.get('origin')?.touched">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">To (IATA Code)</label>
+            <input type="text" class="form-control" formControlName="destination" placeholder="BOM" style="text-transform:uppercase" />
+            <span class="form-error" *ngIf="form.get('destination')?.invalid && form.get('destination')?.touched">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Departure Date</label>
+            <input type="date" class="form-control" formControlName="departureDate" [min]="today" />
+            <span class="form-error" *ngIf="form.get('departureDate')?.invalid && form.get('departureDate')?.touched">Required</span>
+          </div>
+          <div class="search-action">
+            <span class="search-action-label">Find best fares</span>
+            <button type="submit" class="btn btn-primary search-submit" [disabled]="loading">
+              {{loading ? 'Searching...' : 'Search Flights'}}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Results Section with Sidebar Layout -->
+    <div *ngIf="!loading && searched" class="results-container">
+      <!-- Left Sidebar - Filters -->
+      <aside class="filters-sidebar" *ngIf="flights.length > 0">
+        <h3 class="filters-title">Filters</h3>
+
+        <!-- Price Filter -->
+        <div class="filter-section">
+          <div class="filter-header" (click)="toggleFilterSection('price')">
+            <h4 class="filter-section-title">
+              <span>Price</span>
+              <span class="filter-toggle-icon" [class.expanded]="expandedFilters['price']">▼</span>
+            </h4>
+          </div>
+          <div class="filter-content" *ngIf="expandedFilters['price']">
+            <div class="filter-group">
+              <label class="filter-label">₹{{minPrice}} - ₹{{maxPrice}}</label>
+              <input type="range" class="price-slider"
+                min="0" [max]="getMaxFlightPrice()"
+                [(ngModel)]="maxPrice"
+                [ngModelOptions]="{standalone: true}"
+                (ngModelChange)="applyFilters()" />
+              <div class="price-info">
+                <span>₹0</span>
+                <span>₹{{getMaxFlightPrice()}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Duration Filter -->
+        <div class="filter-section">
+          <div class="filter-header" (click)="toggleFilterSection('duration')">
+            <h4 class="filter-section-title">
+              <span>Hours of Journey</span>
+              <span class="filter-toggle-icon" [class.expanded]="expandedFilters['duration']">▼</span>
+            </h4>
+          </div>
+          <div class="filter-content" *ngIf="expandedFilters['duration']">
+            <div class="filter-group filter-checkboxes">
+              <label class="filter-checkbox" *ngFor="let duration of durationFilters">
+                <input type="checkbox"
+                  [checked]="selectedDurations.includes(duration.value)"
+                  (change)="toggleDuration(duration.value)" />
+                <span class="checkbox-label">{{duration.label}}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time Slot Filter -->
+        <div class="filter-section">
+          <div class="filter-header" (click)="toggleFilterSection('timeSlot')">
+            <h4 class="filter-section-title">
+              <span>Departure Time</span>
+              <span class="filter-toggle-icon" [class.expanded]="expandedFilters['timeSlot']">▼</span>
+            </h4>
+          </div>
+          <div class="filter-content" *ngIf="expandedFilters['timeSlot']">
+            <div class="filter-group filter-checkboxes">
+              <label class="filter-checkbox" *ngFor="let slot of timeSlotFilters">
+                <input type="checkbox"
+                  [checked]="selectedTimeSlots.includes(slot.value)"
+                  (change)="toggleTimeSlot(slot.value)" />
+                <span class="checkbox-label">{{slot.label}}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-muted text-sm filter-count">{{filteredFlights.length}} of {{allFlights.length}} flights</p>
+      </aside>
+
+      <!-- Main Content - Flight Results -->
+      <main class="results-main">
+        <div class="results-header mb-3">
+          <h3 *ngIf="filteredFlights.length > 0">{{filteredFlights.length}} flight{{filteredFlights.length !== 1 ? 's' : ''}} found</h3>
+          <h3 *ngIf="filteredFlights.length === 0">No flights found</h3>
+          <p class="text-muted text-sm" *ngIf="filteredFlights.length === 0">Try adjusting your filters or search criteria.</p>
+        </div>
+
+        <div class="flight-list">
+          <div class="flight-card" *ngFor="let f of filteredFlights" (click)="selectFlight(f)">
+          <div class="flight-route">
+            <div>
+              <div class="airport-code">{{f.originAirportCode}}</div>
+              <div class="flight-time">{{f.departureTime | date:'HH:mm'}}</div>
+            </div>
+            <div class="flight-arrow-wrapper">
+              <div class="flight-line">
+                <span class="flight-plane">✈</span>
+              </div>
+              <br>
+              <div class="text-xs text-muted text-center">{{getDuration(f.departureTime, f.arrivalTime)}}</div>
+            </div>
+            <div>
+              <div class="airport-code">{{f.destinationAirportCode}}</div>
+              <div class="flight-time">{{f.arrivalTime | date:'HH:mm'}}</div>
+            </div>
+          </div>
+
+          <div class="flight-meta">
+            <div class="text-sm text-muted">Flight {{f.flightNumber}}</div>
+            <div class="text-sm text-muted">{{f.aircraftType}}</div>
+          </div>
+
+          <div class="flight-price">
+            <div class="price">₹{{f.basePrice | number}}</div>
+            <div class="text-xs text-muted">per person</div>
+            <button class="btn btn-primary btn-sm mt-1" (click)="selectFlight(f); $event.stopPropagation()">Select</button>
+          </div>
+        </div>
+      </div>
+    </main>
+    </div>
+
+    <!-- Loading -->
+    <app-loading-spinner *ngIf="loading" message="Searching available flights..."></app-loading-spinner>
+  </div>
+</div>

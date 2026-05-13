@@ -1,0 +1,98 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <button class="btn btn-ghost btn-sm mb-3" [routerLink]="['/passenger/flight', flightId]">Back to Flight</button>
+
+    <div class="page-header">
+      <h1>Select Your Seat</h1>
+      <p>Choose an available seat for Flight {{seatMapTitle}}</p>
+      <div class="text-muted text-sm mt-1">{{seatMapSubtitle}}</div>
+    </div>
+
+    <app-loading-spinner *ngIf="loading" message="Loading seat map..."></app-loading-spinner>
+
+    <div *ngIf="!loading" class="seat-layout">
+      <div class="card seat-legend-card mb-4">
+        <h4 class="mb-2">Seat Legend</h4>
+        <div class="legend-grid">
+          <div class="legend-item"><div class="seat-shell seat-available legend-seat">A</div><span>Available</span></div>
+          <div class="legend-item"><div class="seat-shell seat-held legend-seat">B</div><span>Held</span></div>
+          <div class="legend-item"><div class="seat-shell seat-confirmed legend-seat">C</div><span>Taken</span></div>
+          <div class="legend-item"><div class="seat-shell seat-blocked legend-seat">D</div><span>Blocked</span></div>
+          <div class="legend-item"><div class="seat-shell seat-selected legend-seat">S</div><span>Selected</span></div>
+        </div>
+      </div>
+
+      <div class="seat-main">
+        <div class="cabin-shell card">
+          <div class="plane-nose">Front Cabin</div>
+
+          <div *ngIf="seats.length === 0" class="text-center text-muted">No seats configured for this flight.</div>
+
+          <ng-container *ngFor="let row of rows; let i = index">
+            <div class="seat-class-separator" *ngIf="shouldShowSeatClassSeparator(i)">
+              <div class="seat-class-separator-line" aria-hidden="true"></div>
+              <div class="seat-class-separator-label">{{getSeatClassSectionLabel(row.seatClass)}}</div>
+              <div class="seat-class-separator-line" aria-hidden="true"></div>
+            </div>
+
+            <div class="cabin-row">
+              <div class="row-marker">{{row.label}}</div>
+              <div class="cabin-side">
+                <div
+                  *ngFor="let seat of row.left"
+                  [class]="getSeatVisualClass(seat)"
+                  [title]="getSeatMapTitle(seat)"
+                  (click)="seat && selectSeat(seat)"
+                >
+                  {{getSeatMapLabel(seat)}}
+                </div>
+              </div>
+              <div class="aisle-lane" aria-hidden="true"></div>
+              <div class="cabin-side">
+                <div
+                  *ngFor="let seat of row.right"
+                  [class]="getSeatVisualClass(seat)"
+                  [title]="getSeatMapTitle(seat)"
+                  (click)="seat && selectSeat(seat)"
+                >
+                  {{getSeatMapLabel(seat)}}
+                </div>
+              </div>
+              <div class="row-marker row-marker-right">{{row.label}}</div>
+            </div>
+          </ng-container>
+        </div>
+
+        <div class="selected-info card mt-3" *ngIf="selectedSeat">
+          <h4>Selected Seat</h4>
+          <div class="flex justify-between items-center mt-2">
+            <div>
+              <div class="text-2xl font-bold text-cyan">{{selectedSeat.seatNumber}}</div>
+              <div class="text-sm text-muted">{{selectedSeat.seatClass}} Class</div>
+              <div class="text-sm text-muted" *ngIf="hasExtraLegroom(selectedSeat)">Extra Legroom</div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm text-muted">Price Multiplier</div>
+              <div class="font-semibold text-lg">{{selectedSeat.priceMultiplier}}x</div>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-full btn-lg mt-3" (click)="continue()">
+            {{auth.isLoggedIn() ? 'Continue to Booking' : 'Login to Book This Seat'}}
+          </button>
+          <div class="guest-booking-note" *ngIf="!auth.isLoggedIn()">
+            <p class="text-muted text-sm">You can search flights and inspect the seat map without signing in. Login or sign up only when you want to book.</p>
+            <div class="guest-booking-actions">
+              <a class="btn btn-secondary btn-sm" [routerLink]="['/login']" [queryParams]="{ returnUrl: bookingReturnUrl }">Login</a>
+              <a class="btn btn-ghost btn-sm" [routerLink]="['/register']" [queryParams]="{ returnUrl: bookingReturnUrl }">Sign Up</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-3 text-center" *ngIf="!selectedSeat">
+          <p class="text-muted">Click on a green seat to select it</p>
+          <button class="btn btn-ghost mt-2" disabled>Continue to Booking</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

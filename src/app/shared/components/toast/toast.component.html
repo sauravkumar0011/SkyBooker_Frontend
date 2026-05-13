@@ -1,0 +1,11 @@
+<div class="toast-container">
+  <div
+    class="toast toast-{{ t.type }} animate-slide"
+    *ngFor="let t of toasts"
+    (click)="remove(t.id)"
+  >
+    <span class="toast-icon">{{ icons[t.type] }}</span>
+    <span class="toast-msg">{{ t.message }}</span>
+    <button class="toast-close" aria-label="Dismiss notification">x</button>
+  </div>
+</div>

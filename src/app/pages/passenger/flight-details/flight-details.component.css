@@ -1,0 +1,80 @@
+.route-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px;
+  background: linear-gradient(135deg, var(--navy-800) 0%, rgba(34,211,238,0.04) 100%);
+}
+
+.route-code { font-family: var(--font-display); font-size: 42px; font-weight: 800; color: var(--white); }
+.route-time { font-size: 18px; font-weight: 600; color: var(--cyan-400); }
+.route-middle { flex: 1; padding: 0 28px; text-align: center; }
+.route-plane-line { display: flex; align-items: center; margin-bottom: 6px; }
+.route-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--cyan-600)); }
+.route-line:last-child { background: linear-gradient(90deg, var(--cyan-600), transparent); }
+.route-plane { font-size: 18px; color: var(--cyan-400); padding: 0 10px; }
+.route-duration { font-weight: 600; }
+
+.details-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.details-grid > .card {
+  height: 100%;
+}
+
+.info-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-table { width: 100%; border-collapse: collapse; }
+.detail-table tr td { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
+.detail-table tr:last-child td { border-bottom: none; }
+.dt-label { color: var(--slate-400); width: 45%; }
+.dt-value { color: var(--white); font-weight: 500; }
+
+.pricing-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.pricing-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.price-display {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  padding: 24px 18px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(34,211,238,0.08), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.price-amount { font-family: var(--font-display); font-size: 48px; font-weight: 800; color: var(--cyan-400); }
+.price-note { margin-top: 12px; font-size: 13px; color: var(--slate-400); line-height: 1.5; }
+
+.pricing-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .route-banner { flex-direction: column; gap: 20px; }
+  .route-middle { padding: 0; }
+  .route-code { font-size: 36px; }
+  .route-point { text-align: center !important; }
+  .details-grid { grid-template-columns: 1fr; }
+}

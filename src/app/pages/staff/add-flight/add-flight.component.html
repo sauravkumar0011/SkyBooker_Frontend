@@ -1,0 +1,78 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <button class="btn btn-ghost btn-sm mb-3" routerLink="/staff/flights">← Back to Flights</button>
+    <div class="page-header">
+      <h1>Add New Flight</h1>
+      <p>Enter flight details to create a new scheduled flight.</p>
+    </div>
+
+    <div class="card" style="max-width:700px">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Flight Number</label>
+            <input type="text" class="form-control" formControlName="flightNumber" placeholder="AI-101" />
+            <span class="form-error" *ngIf="form.get('flightNumber')?.invalid && form.get('flightNumber')?.touched">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Airline</label>
+            <input type="text" class="form-control" [value]="currentAirlineName || 'Loading airline...'" readonly />
+            <span class="form-error" *ngIf="form.get('airlineId')?.invalid && form.get('airlineId')?.touched">Airline required</span>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Origin Airport Code</label>
+            <input type="text" class="form-control" formControlName="originAirportCode" placeholder="DEL" style="text-transform:uppercase" maxlength="3" />
+            <span class="form-error" *ngIf="form.get('originAirportCode')?.invalid && form.get('originAirportCode')?.touched">3-letter IATA code required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Destination Airport Code</label>
+            <input type="text" class="form-control" formControlName="destinationAirportCode" placeholder="BOM" style="text-transform:uppercase" maxlength="3" />
+            <span class="form-error" *ngIf="form.get('destinationAirportCode')?.invalid && form.get('destinationAirportCode')?.touched">3-letter IATA code required</span>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Departure Time</label>
+            <input type="datetime-local" class="form-control" formControlName="departureTime" />
+            <span class="form-error" *ngIf="form.get('departureTime')?.invalid && form.get('departureTime')?.touched">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Arrival Time</label>
+            <input type="datetime-local" class="form-control" formControlName="arrivalTime" />
+            <span class="form-error" *ngIf="form.get('arrivalTime')?.invalid && form.get('arrivalTime')?.touched">Required</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Aircraft Type</label>
+          <select class="form-control" formControlName="aircraftType">
+            <option value="" disabled hidden>Select aircraft type</option>
+            <option *ngFor="let aircraftType of aircraftTypes" [value]="aircraftType">{{ aircraftType }}</option>
+          </select>
+          <span class="form-error" *ngIf="form.get('aircraftType')?.invalid && form.get('aircraftType')?.touched">Required</span>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Total Seats</label>
+            <input type="number" class="form-control" formControlName="totalSeats" placeholder="180" min="1" />
+            <span class="form-error" *ngIf="form.get('totalSeats')?.invalid && form.get('totalSeats')?.touched">Required (min 1)</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Base Price (₹)</label>
+            <input type="number" class="form-control" formControlName="basePrice" placeholder="5000" min="0" />
+            <span class="form-error" *ngIf="form.get('basePrice')?.invalid && form.get('basePrice')?.touched">Required</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" [disabled]="loading">
+          {{loading ? 'Creating Flight...' : '✈ Create Flight'}}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

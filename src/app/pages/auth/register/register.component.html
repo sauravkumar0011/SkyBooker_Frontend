@@ -1,0 +1,84 @@
+<div class="auth-page">
+  <div class="auth-shell auth-shell-wide no-visual signup-shell">
+    <div class="auth-card card animate-fade-up signup-card-split">
+      <div class="signup-card-content">
+        <h2 class="auth-title">Create your account</h2><br>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+          <div class="form-group">
+            <label class="form-label">Full Name <span class="required-mark">*</span></label>
+            <input type="text" class="form-control" formControlName="fullName" placeholder="John Doe" />
+            <span class="form-error" *ngIf="form.get('fullName')?.invalid && form.get('fullName')?.touched">{{ getErrorMessage('fullName') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Email Address <span class="required-mark">*</span></label>
+            <input type="email" class="form-control" formControlName="email" placeholder="you@example.com" />
+            <span class="form-error" *ngIf="form.get('email')?.invalid && form.get('email')?.touched">{{ getErrorMessage('email') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Password <span class="required-mark">*</span></label>
+            <div class="input-with-icon">
+              <input [type]="showPassword ? 'text' : 'password'" class="form-control" formControlName="password" placeholder="Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special" />
+              <button
+                type="button"
+                class="eye-btn"
+                [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+                [attr.aria-pressed]="showPassword"
+                (click)="showPassword = !showPassword"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2.2 12s3.6-6 9.8-6 9.8 6 9.8 6-3.6 6-9.8 6-9.8-6-9.8-6Z"></path>
+                  <circle cx="12" cy="12" r="3.2"></circle>
+                  <path *ngIf="showPassword" d="M4 20 20 4"></path>
+                </svg>
+              </button>
+            </div>
+            <span class="form-error" *ngIf="form.get('password')?.invalid && form.get('password')?.touched">{{ getErrorMessage('password') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Phone Number <span class="required-mark">*</span></label>
+            <input type="tel" class="form-control" formControlName="phone" placeholder="+91 9876543210" />
+            <span class="form-error" *ngIf="form.get('phone')?.invalid && form.get('phone')?.touched">{{ getErrorMessage('phone') }}</span>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Passport Number</label>
+              <input type="text" class="form-control" formControlName="passportNumber" placeholder="A1234567" />
+              <span class="form-error" *ngIf="form.get('passportNumber')?.invalid && form.get('passportNumber')?.touched">{{ getErrorMessage('passportNumber') }}</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Nationality</label>
+              <input type="text" class="form-control" formControlName="nationality" placeholder="Indian" />
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full btn-lg auth-submit-btn" [disabled]="loading">
+            <span class="auth-btn-label" *ngIf="!loading">Create Account</span>
+            <span class="auth-btn-label" *ngIf="loading">
+              <span class="auth-btn-spinner" aria-hidden="true"></span>
+              <span>Creating...</span>
+            </span>
+          </button>
+        </form>
+
+        <div class="auth-footer">
+          <p class="text-muted text-sm">Already have an account? <a routerLink="/login" [queryParams]="returnUrl ? { returnUrl } : null" class="text-cyan">Sign in</a></p>
+        </div>
+      </div>
+
+      <div class="signup-card-visual">
+        <div class="signup-card-visual-media">
+          <img src="assets/illustrations/sign.jpg" alt="Traveler sign-up visual" />
+          <div class="auth-visual-overlay">
+            <span class="visual-tag">New account</span>
+            <h3>Start every trip with your details ready.</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

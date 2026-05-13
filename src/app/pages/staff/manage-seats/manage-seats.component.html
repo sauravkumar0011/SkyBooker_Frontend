@@ -1,0 +1,323 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="page-header">
+      <h1>Manage Seats</h1>
+      <p>Select a flight first, then create seats, review availability, inspect the cabin map, or delete seats for that flight.</p>
+    </div>
+
+    <div class="card mb-4 flight-selector-card">
+      <div class="flight-selector-header">
+        <div>
+          <h3 class="mb-1">Choose Flight</h3>
+          <p class="text-muted text-sm">All seat actions below will use the flight you select here.</p>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" [disabled]="flightsLoading" (click)="loadFlights()">Refresh Flights</button>
+      </div>
+
+      <app-loading-spinner *ngIf="flightsLoading" message="Loading flights..."></app-loading-spinner>
+
+      <div *ngIf="!flightsLoading && flights.length === 0" class="alert alert-warning">
+        No flights available to manage seats.
+      </div>
+
+      <div class="table-wrapper" *ngIf="!flightsLoading && flights.length > 0">
+        <table>
+          <thead>
+            <tr>
+              <th>Flight</th>
+              <th>Route</th>
+              <th>Departure</th>
+              <th>Aircraft</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let flight of flights" [class.selected-flight-row]="isSelectedFlight(flight)">
+              <td>
+                <div class="font-semibold text-cyan">{{flight.flightNumber}}</div>
+                <div class="text-xs text-muted">{{flight.originAirportCode}} to {{flight.destinationAirportCode}}</div>
+              </td>
+              <td>{{flight.originAirportCode}} to {{flight.destinationAirportCode}}</td>
+              <td>{{flight.departureTime | date:'medium'}}</td>
+              <td>{{flight.aircraftType}}</td>
+              <td><span class="badge {{getStatusClass(flight.status)}}">{{flight.status}}</span></td>
+              <td>
+                <button type="button" class="btn btn-sm" [class.btn-primary]="isSelectedFlight(flight)" [class.btn-ghost]="!isSelectedFlight(flight)" (click)="selectFlight(flight)">
+                  {{isSelectedFlight(flight) ? 'Selected' : 'Select'}}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mode-toggle mb-4">
+      <button class="btn" [class.btn-primary]="mode==='bulk'" [class.btn-ghost]="mode!=='bulk'" [disabled]="!hasSelectedFlight" (click)="mode='bulk'">Bulk Creation</button>
+      <button class="btn" [class.btn-primary]="mode==='single'" [class.btn-ghost]="mode!=='single'" [disabled]="!hasSelectedFlight" (click)="mode='single'">Single Seat</button>
+    </div>
+
+    <div class="card empty-state-card" *ngIf="!selectedFlight">
+      <h3 class="mb-1">Pick a flight to continue</h3>
+      <p class="text-muted">Once a flight is selected, the seat creation forms and staff seat tools will target that flight automatically.</p>
+    </div>
+
+    <div class="card seat-form-card" *ngIf="mode==='bulk' && selectedFlight">
+      <h3 class="mb-1">Bulk Seat Creation</h3>
+      <p class="text-muted text-sm mb-3">Create multiple seats at once for {{selectedFlight.flightNumber}}.</p>
+
+      <form [formGroup]="bulkForm" (ngSubmit)="onBulkSubmit()">
+        <div class="seat-form-grid seat-form-grid-4">
+          <div class="form-group">
+            <label class="form-label">Seat Class</label>
+            <select class="form-control" formControlName="seatClass">
+              <option *ngFor="let c of seatClasses" [value]="c">{{c | titlecase}}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Price Multiplier</label>
+            <input type="number" class="form-control" formControlName="priceMultiplier" step="0.1" min="1.1" />
+            <span class="form-error" *ngIf="bulkForm.get('priceMultiplier')?.invalid && bulkForm.get('priceMultiplier')?.touched">Must be greater than 1.0.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">From Row</label>
+            <input type="number" class="form-control" formControlName="fromRow" placeholder="1" min="1" />
+            <span class="form-error" *ngIf="bulkForm.get('fromRow')?.invalid && bulkForm.get('fromRow')?.touched">Required</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">To Row</label>
+            <input type="number" class="form-control" formControlName="toRow" placeholder="30" min="1" />
+            <span class="form-error" *ngIf="bulkForm.get('toRow')?.invalid && bulkForm.get('toRow')?.touched">Required</span>
+          </div>
+        </div>
+
+        <div class="seat-form-grid seat-form-grid-bulk-bottom">
+          <div class="form-group seat-form-span">
+            <label class="form-label">Seat Columns</label>
+            <div class="column-selector">
+              <button type="button" class="col-btn" *ngFor="let col of availableColumns" [class.selected]="selectedColumns.includes(col)" (click)="toggleColumn(col)">{{col}}</button>
+            </div>
+            <span class="form-hint">Sent as: {{selectedColumns.join('') || 'None'}}</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Extra Legroom</label>
+            <div class="toggle-wrapper compact-toggle">
+              <input type="checkbox" id="elr" formControlName="extraLegroom" />
+              <label for="elr" class="toggle-label">Enable extra legroom</label>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" [disabled]="loading">
+          {{loading ? 'Creating...' : 'Create Bulk Seats'}}
+        </button>
+      </form>
+    </div>
+
+    <div class="card seat-form-card" *ngIf="mode==='single' && selectedFlight">
+      <h3 class="mb-1">Add Single Seat</h3>
+      <p class="text-muted text-sm mb-3">Add one seat directly to {{selectedFlight.flightNumber}}.</p>
+
+      <form [formGroup]="singleForm" (ngSubmit)="onSingleSubmit()">
+        <div class="seat-form-grid seat-form-grid-4">
+          <div class="form-group">
+            <label class="form-label">Row Number</label>
+            <input type="number" class="form-control" formControlName="rowNumber" placeholder="12" min="1" />
+            <span class="form-error" *ngIf="singleForm.get('rowNumber')?.invalid && singleForm.get('rowNumber')?.touched">Enter a valid row number.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Column Letter</label>
+            <input type="text" class="form-control" formControlName="columnLetter" placeholder="A" maxlength="1" style="text-transform:uppercase" />
+            <span class="form-error" *ngIf="singleForm.get('columnLetter')?.invalid && singleForm.get('columnLetter')?.touched">Enter one column letter.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Seat Class</label>
+            <select class="form-control" formControlName="seatClass">
+              <option *ngFor="let c of seatClasses" [value]="c">{{c | titlecase}}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Price Multiplier</label>
+            <input type="number" class="form-control" formControlName="priceMultiplier" step="0.1" min="1.1" />
+            <span class="form-error" *ngIf="singleForm.get('priceMultiplier')?.invalid && singleForm.get('priceMultiplier')?.touched">Must be greater than 1.0.</span>
+          </div>
+        </div>
+
+        <div class="seat-form-grid seat-form-grid-3">
+          <div class="form-group">
+            <label class="form-label">Window Seat</label>
+            <div class="toggle-wrapper">
+              <input type="checkbox" id="windowSeat" formControlName="isWindow" (change)="onWindowSeatChange()" />
+              <label for="windowSeat" class="toggle-label">Mark as window</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Aisle Seat</label>
+            <div class="toggle-wrapper">
+              <input type="checkbox" id="aisleSeat" formControlName="isAisle" (change)="onAisleSeatChange()" />
+              <label for="aisleSeat" class="toggle-label">Mark as aisle</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Extra Legroom</label>
+            <div class="toggle-wrapper">
+              <input type="checkbox" id="elr2" formControlName="hasExtraLegroom" />
+              <label for="elr2" class="toggle-label">Enable extra legroom</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-error" *ngIf="singleForm.errors?.['conflictingSeatPosition'] && singleForm.touched">
+          A seat cannot be both a window seat and an aisle seat.
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" [disabled]="loading">
+          {{loading ? 'Creating...' : 'Add Seat'}}
+        </button>
+      </form>
+    </div>
+
+    <div class="card mt-4 seat-ops-card" *ngIf="selectedFlight">
+      <h3 class="mb-1">Seat Operations</h3>
+      <p class="text-muted text-sm mb-3">Review the cabin layout, check available seats, or clear all seats for the selected flight.</p>
+
+      <form [formGroup]="lookupForm">
+        <div class="seat-ops-toolbar">
+          <button type="button" class="btn btn-ghost" [disabled]="lookupLoading" (click)="loadSeatMap()">View Seat Map</button>
+          <button type="button" class="btn btn-danger" [disabled]="lookupLoading || deletingSeats" (click)="openDeleteSeatsConfirm()">Delete Seats For Flight</button>
+          <button type="button" class="btn btn-primary filter-action-btn" [disabled]="lookupLoading" (click)="loadAvailableSeats()">
+            {{lookupLoading ? 'Loading...' : 'View Available Seats'}}
+          </button>
+          <div class="form-group filter-select-group toolbar-filter-group">
+            <label class="form-label">Seat Class Filter</label>
+            <select class="form-control" formControlName="seatClass">
+              <option *ngFor="let c of availabilitySeatClasses" [value]="c">{{c === 'ALL' ? 'All Classes' : (c | titlecase)}}</option>
+            </select>
+          </div>
+        </div>
+        <div class="toolbar-filter-hint">
+          <span class="form-hint">Seat class filtering applies only to the available seats lookup.</span>
+        </div>
+      </form>
+
+      <app-loading-spinner *ngIf="lookupLoading" message="Loading seats..."></app-loading-spinner>
+
+      <div *ngIf="!lookupLoading && lookupSearched" class="seat-results">
+        <div class="seat-results-header">
+          <div>
+            <h4 class="mb-1">Seat Results</h4>
+            <p class="text-muted text-sm">{{lookupSummary}}</p>
+          </div>
+          <div class="results-badge">{{seatResults.length}} seat(s)</div>
+        </div>
+
+        <div class="metrics-grid" *ngIf="seatResults.length > 0">
+          <div class="metric-card">
+            <div class="metric-label">Available</div>
+            <div class="metric-value">{{getMetricCount('AVAILABLE')}}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Held</div>
+            <div class="metric-value">{{getMetricCount('HELD')}}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Confirmed</div>
+            <div class="metric-value">{{getMetricCount('CONFIRMED')}}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Blocked</div>
+            <div class="metric-value">{{getMetricCount('BLOCKED')}}</div>
+          </div>
+        </div>
+
+        <div *ngIf="seatResults.length === 0" class="alert alert-warning">
+          No seats found for this query.
+        </div>
+
+        <div *ngIf="currentLookupMode === 'map' && seatResults.length > 0" class="staff-seat-layout">
+          <div class="card seat-legend-card">
+            <h4 class="mb-2">Cabin Legend</h4>
+            <div class="legend-grid">
+              <div class="legend-item"><div class="seat-shell seat-available legend-seat">A</div><span>Available</span></div>
+              <div class="legend-item"><div class="seat-shell seat-held legend-seat">B</div><span>Held</span></div>
+              <div class="legend-item"><div class="seat-shell seat-confirmed legend-seat">C</div><span>Confirmed</span></div>
+              <div class="legend-item"><div class="seat-shell seat-blocked legend-seat">D</div><span>Blocked</span></div>
+            </div>
+          </div>
+
+          <div class="cabin-shell card">
+            <div class="plane-nose">Front Cabin</div>
+
+            <ng-container *ngFor="let row of seatMapRows; let i = index">
+              <div class="seat-class-separator" *ngIf="shouldShowSeatClassSeparator(i)">
+                <div class="seat-class-separator-line" aria-hidden="true"></div>
+                <div class="seat-class-separator-label">{{getSeatClassSectionLabel(row.seatClass)}}</div>
+                <div class="seat-class-separator-line" aria-hidden="true"></div>
+              </div>
+
+              <div class="cabin-row">
+                <div class="row-marker">{{row.label}}</div>
+                <div class="cabin-side">
+                  <div *ngFor="let seat of row.left" [class]="getSeatVisualClass(seat)" [title]="getSeatMapTitle(seat)">
+                    {{getSeatMapLabel(seat)}}
+                  </div>
+                </div>
+                <div class="aisle-lane" aria-hidden="true"></div>
+                <div class="cabin-side">
+                  <div *ngFor="let seat of row.right" [class]="getSeatVisualClass(seat)" [title]="getSeatMapTitle(seat)">
+                    {{getSeatMapLabel(seat)}}
+                  </div>
+                </div>
+                <div class="row-marker row-marker-right">{{row.label}}</div>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+
+        <div class="table-wrapper" *ngIf="currentLookupMode !== 'map' && seatResults.length > 0">
+          <table>
+            <thead>
+              <tr>
+                <th>Seat</th>
+                <th>Class</th>
+                <th>Status</th>
+                <th>Side</th>
+                <th>Extra Legroom</th>
+                <th>Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let seat of seatResults">
+                <td>
+                  <div class="font-semibold text-cyan">{{getSeatPosition(seat)}}</div>
+                </td>
+                <td>{{seat.seatClass | titlecase}}</td>
+                <td><span class="badge {{getStatusClass(seat.status)}}">{{seat.status}}</span></td>
+                <td>{{getSeatSide(seat)}}</td>
+                <td>{{hasSeatExtraLegroom(seat) ? 'Yes' : 'No'}}</td>
+                <td>{{seat.priceMultiplier}}x</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" *ngIf="deleteFlightId" (click)="closeDeleteSeatsConfirm()">
+  <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-seats-title" (click)="$event.stopPropagation()">
+    <div class="confirm-icon">!</div>
+    <h3 id="delete-seats-title">Delete all seats for this flight?</h3>
+    <p class="text-muted">
+      All seats linked to {{selectedFlight?.flightNumber}} will be permanently removed.
+    </p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" [disabled]="deletingSeats" (click)="closeDeleteSeatsConfirm()">Cancel</button>
+      <button type="button" class="btn btn-danger" [disabled]="deletingSeats" (click)="confirmDeleteSeats()">
+        {{deletingSeats ? 'Deleting...' : 'Delete Seats'}}
+      </button>
+    </div>
+  </div>
+</div>

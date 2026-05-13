@@ -1,0 +1,19 @@
+.success-card { text-align: center; max-width: 500px; margin: 0 auto; padding: 48px 36px; }
+.success-icon { font-size: 52px; margin-bottom: 16px; }
+.success-card h2 { margin-bottom: 8px; }
+.ticket-number {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--cyan-400);
+  letter-spacing: 0.08em;
+  background: rgba(34,211,238,0.08);
+  border: 1px dashed rgba(34,211,238,0.3);
+  padding: 14px 24px;
+  border-radius: var(--radius-md);
+  margin: 12px 0;
+}
+.booking-summary-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.booking-summary-row:last-child { border-bottom: none; }
+.booking-summary-row .label { color: var(--slate-400); }
+.booking-summary-row .value { font-weight: 600; color: var(--white); }

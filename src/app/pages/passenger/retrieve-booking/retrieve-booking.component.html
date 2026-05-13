@@ -1,0 +1,47 @@
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="page-header text-center">
+      <h1>Retrieve Booking</h1>
+      <p>Enter your PNR code to find your booking details.</p>
+    </div>
+
+    <div class="card retrieve-booking-card">
+      <form [formGroup]="form" (ngSubmit)="search()">
+        <div class="form-group">
+          <label class="form-label">PNR Code</label>
+          <input
+            type="text"
+            class="form-control pnr-input"
+            formControlName="pnr"
+            placeholder="e.g. SKY123ABC"
+          />
+          <span class="form-error" *ngIf="form.get('pnr')?.invalid && form.get('pnr')?.touched">
+            PNR code required
+          </span>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" [disabled]="loading">
+          {{ loading ? 'Searching...' : 'Find Booking' }}
+        </button>
+      </form>
+
+      <div class="mt-3" *ngIf="booking">
+        <hr class="divider">
+        <h3 class="mb-3">Booking Found</h3>
+        <div class="booking-summary">
+          <div class="booking-summary-row"><span class="label">PNR</span><span class="value text-cyan">{{ booking.pnrCode }}</span></div>
+          <div class="booking-summary-row"><span class="label">Flight</span><span class="value">#{{ booking.flightId }}</span></div>
+          <div class="booking-summary-row"><span class="label">Seat</span><span class="value">#{{ booking.seatId }}</span></div>
+          <div class="booking-summary-row"><span class="label">Status</span><span class="value"><span class="badge badge-success">{{ booking.status }}</span></span></div>
+          <div class="booking-summary-row"><span class="label">Trip Type</span><span class="value">{{ booking.tripType }}</span></div>
+          <div class="booking-summary-row"><span class="label">Total Fare</span><span class="value">&#8377;{{ booking.totalFare | number }}</span></div>
+          <div class="booking-summary-row"><span class="label">Booked At</span><span class="value">{{ booking.bookedAt | date:'medium' }}</span></div>
+          <div class="booking-summary-row"><span class="label">Contact</span><span class="value">{{ booking.contactEmail }}</span></div>
+        </div>
+      </div>
+
+      <div class="alert alert-danger mt-3" *ngIf="notFound">
+        No booking found with PNR "{{ searchedPnr }}".
+      </div>
+    </div>
+  </div>
+</div>
