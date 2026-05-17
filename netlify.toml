@@ -1,0 +1,6 @@
+[build]
+  command   = "npm run build -- --configuration production"
+  publish   = "dist/skybooker/browser"
+
+[build.environment]
+  NODE_VERSION = "18"

@@ -30,4 +30,8 @@ export class RetrieveBookingComponent {
       error: () => { this.notFound = true; this.loading = false; }
     });
   }
+
+  getSeatLabel(): string {
+    return this.booking?.seatIds?.join(', ') || '--';
+  }
 }

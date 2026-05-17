@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../../environments/environment';
+import { SUPPRESS_GLOBAL_ERROR_TOAST } from '../interceptors/http-context-tokens';
 import { PaymentService } from './payment.service';
 
 describe('PaymentService', () => {
@@ -58,7 +59,26 @@ describe('PaymentService', () => {
     const req = httpMock.expectOne(`${baseUrl}/process`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(payload);
+    expect(req.request.context.get(SUPPRESS_GLOBAL_ERROR_TOAST)).toBeFalse();
     req.flush({ paymentId: 'payment-1', status: 'PAID' });
+  });
+
+  it('should allow process payment requests to suppress global error toasts', () => {
+    const payload = {
+      paymentId: 'payment-1',
+      razorpayOrderId: 'order-1',
+      razorpayPaymentId: '',
+      razorpaySignature: '',
+      gatewayResponse: '{}',
+      success: false
+    } as any;
+
+    service.processPayment(payload, { suppressHandledErrorToast: true }).subscribe();
+
+    const req = httpMock.expectOne(`${baseUrl}/process`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.context.get(SUPPRESS_GLOBAL_ERROR_TOAST)).toBeTrue();
+    req.flush({ paymentId: 'payment-1', status: 'FAILED' });
   });
 
   it('should fetch payment status by payment id', () => {

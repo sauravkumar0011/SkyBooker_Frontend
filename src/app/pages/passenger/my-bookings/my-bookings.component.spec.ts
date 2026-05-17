@@ -23,18 +23,27 @@ describe('MyBookingsComponent', () => {
 
   const booking = {
     bookingId: 'booking-1',
+    userId: 'user-1',
     flightId: 'flight-1',
-    seatId: 'seat-1',
+    seatIds: ['seat-1'],
     pnrCode: 'PNR123',
     totalFare: 6400,
-    status: 'PENDING'
+    baseFare: 5400,
+    taxes: 1000,
+    tripType: 'ONE_WAY',
+    mealPreference: 'STANDARD',
+    luggageKg: 15,
+    contactEmail: 'sky@example.com',
+    contactPhone: '+911234567890',
+    status: 'CONFIRMED'
   } as any;
   const flight = { flightId: 'flight-1', flightNumber: 'SB101', originAirportCode: 'DEL', destinationAirportCode: 'BOM' } as any;
   const seat = { seatId: 'seat-1', seatNumber: '12A' } as any;
   const passenger = { ticketNumber: 'TKT-1', firstName: 'Sky', lastName: 'Traveler' } as any;
+  const fareSummary = { baseFare: 5400, taxes: 1000, baggageCharge: 0, mealCharge: 0, totalFare: 6400 } as any;
 
   beforeEach(async () => {
-    bookingService = jasmine.createSpyObj<BookingService>('BookingService', ['getBookingsByUser', 'cancelBooking']);
+    bookingService = jasmine.createSpyObj<BookingService>('BookingService', ['getBookingsByUser', 'cancelBooking', 'calculateFare']);
     flightService = jasmine.createSpyObj<FlightService>('FlightService', ['getFlightById']);
     seatService = jasmine.createSpyObj<SeatService>('SeatService', ['getSeatMap']);
     passengerService = jasmine.createSpyObj<PassengerService>('PassengerService', ['getPassengersByBooking']);
@@ -45,6 +54,7 @@ describe('MyBookingsComponent', () => {
     auth.getUserId.and.returnValue('user-1');
     bookingService.getBookingsByUser.and.returnValue(of([booking]));
     bookingService.cancelBooking.and.returnValue(of({ ...booking, status: 'CANCELLED' } as any));
+    bookingService.calculateFare.and.returnValue(of(fareSummary));
     flightService.getFlightById.and.returnValue(of(flight));
     seatService.getSeatMap.and.returnValue(of([seat]));
     passengerService.getPassengersByBooking.and.returnValue(of([passenger]));
@@ -156,7 +166,17 @@ describe('MyBookingsComponent', () => {
 
     component.downloadTicket(booking);
 
-    expect(component['buildTicketPdf']).toHaveBeenCalledWith(booking, flight, seat, passenger);
+    expect(bookingService.calculateFare).toHaveBeenCalledWith({
+      userId: 'user-1',
+      flightId: 'flight-1',
+      seatIds: ['seat-1'],
+      tripType: 'ONE_WAY',
+      mealPreference: 'STANDARD',
+      luggageKg: 15,
+      contactEmail: 'sky@example.com',
+      contactPhone: '+911234567890',
+    });
+    expect(component['buildTicketPdf']).toHaveBeenCalledWith(booking, flight, [seat], [passenger], fareSummary);
     expect(createObjectUrlSpy).toHaveBeenCalledWith(blob);
     expect(anchor.click).toHaveBeenCalled();
     expect(revokeObjectUrlSpy).toHaveBeenCalledWith('blob:test');
@@ -168,5 +188,14 @@ describe('MyBookingsComponent', () => {
     expect(component.getStatusClass('PENDING')).toBe('badge-warning');
     expect(component.getStatusClass('CONFIRMED')).toBe('badge-success');
     expect(component.getStatusClass('UNKNOWN')).toBe('badge-default');
+  });
+
+  it('should hide pending bookings from the visible list', () => {
+    const pendingBooking = { ...booking, bookingId: 'booking-2', status: 'PENDING' } as any;
+    bookingService.getBookingsByUser.and.returnValue(of([booking, pendingBooking]));
+
+    fixture.detectChanges();
+
+    expect(component.bookings).toEqual([booking]);
   });
 });

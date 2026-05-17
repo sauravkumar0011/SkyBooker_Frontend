@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Booking, BookingRequest, FareSummaryResponse } from '../../models';
+import { SUPPRESS_GLOBAL_ERROR_TOAST } from '../interceptors/http-context-tokens';
 
 @Injectable({ providedIn: 'root' })
 export class BookingService {
@@ -30,11 +31,8 @@ export class BookingService {
     return this.http.get<Booking>(`${this.base}/${bookingId}`);
   }
 
-  confirmBooking(bookingId: string): Observable<Booking> {
-    return this.http.put<Booking>(`${this.base}/${bookingId}/confirm`, {});
-  }
-
   cancelBooking(bookingId: string): Observable<Booking> {
-    return this.http.put<Booking>(`${this.base}/${bookingId}/cancel`, {});
+    const context = new HttpContext().set(SUPPRESS_GLOBAL_ERROR_TOAST, true);
+    return this.http.put<Booking>(`${this.base}/${bookingId}/cancel`, {}, { context });
   }
 }

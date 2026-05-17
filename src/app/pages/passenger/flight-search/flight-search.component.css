@@ -366,3 +366,23 @@
     right: -48px;
   }
 }
+
+@media (max-width: 400px) {
+  .flight-card {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .flight-route {
+    gap: 12px;
+  }
+
+  .airport-code {
+    font-size: 20px;
+  }
+
+  .flight-plane {
+    font-size: 14px;
+    padding: 0 4px;
+  }
+}

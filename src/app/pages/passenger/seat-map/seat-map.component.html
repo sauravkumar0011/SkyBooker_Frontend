@@ -3,8 +3,8 @@
     <button class="btn btn-ghost btn-sm mb-3" [routerLink]="['/passenger/flight', flightId]">Back to Flight</button>
 
     <div class="page-header">
-      <h1>Select Your Seat</h1>
-      <p>Choose an available seat for Flight {{seatMapTitle}}</p>
+      <h1>Select Your Seats</h1>
+      <p>Choose one or more available seats for Flight {{seatMapTitle}}</p>
       <div class="text-muted text-sm mt-1">{{seatMapSubtitle}}</div>
     </div>
 
@@ -63,24 +63,27 @@
           </ng-container>
         </div>
 
-        <div class="selected-info card mt-3" *ngIf="selectedSeat">
-          <h4>Selected Seat</h4>
-          <div class="flex justify-between items-center mt-2">
+        <div class="selected-info card mt-3" *ngIf="hasSelectedSeats">
+          <div class="selection-header">
             <div>
-              <div class="text-2xl font-bold text-cyan">{{selectedSeat.seatNumber}}</div>
-              <div class="text-sm text-muted">{{selectedSeat.seatClass}} Class</div>
-              <div class="text-sm text-muted" *ngIf="hasExtraLegroom(selectedSeat)">Extra Legroom</div>
+              <h4>Selected Seats</h4>
+              <div class="text-sm text-muted">{{selectedSeatCount}} passenger{{selectedSeatCount > 1 ? 's' : ''}} will be added in one booking.</div>
             </div>
-            <div class="text-right">
-              <div class="text-sm text-muted">Price Multiplier</div>
-              <div class="font-semibold text-lg">{{selectedSeat.priceMultiplier}}x</div>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="clearSelection()">Clear</button>
+          </div>
+
+          <div class="selected-seat-grid mt-3">
+            <div class="selected-seat-chip" *ngFor="let seat of selectedSeats">
+              <div class="selected-seat-code">{{seat.seatNumber}}</div>
+              <div class="selected-seat-meta">{{seat.seatClass | titlecase}}</div>
             </div>
           </div>
+
           <button class="btn btn-primary btn-full btn-lg mt-3" (click)="continue()">
-            {{auth.isLoggedIn() ? 'Continue to Booking' : 'Login to Book This Seat'}}
+            {{auth.isLoggedIn() ? 'Continue to Booking' : 'Login to Book These Seats'}}
           </button>
           <div class="guest-booking-note" *ngIf="!auth.isLoggedIn()">
-            <p class="text-muted text-sm">You can search flights and inspect the seat map without signing in. Login or sign up only when you want to book.</p>
+            <p class="text-muted text-sm">You can explore the seat map without signing in. Login or sign up when you are ready to book the selected seats together.</p>
             <div class="guest-booking-actions">
               <a class="btn btn-secondary btn-sm" [routerLink]="['/login']" [queryParams]="{ returnUrl: bookingReturnUrl }">Login</a>
               <a class="btn btn-ghost btn-sm" [routerLink]="['/register']" [queryParams]="{ returnUrl: bookingReturnUrl }">Sign Up</a>
@@ -88,8 +91,8 @@
           </div>
         </div>
 
-        <div class="card mt-3 text-center" *ngIf="!selectedSeat">
-          <p class="text-muted">Click on a green seat to select it</p>
+        <div class="card mt-3 text-center" *ngIf="!hasSelectedSeats">
+          <p class="text-muted">Click on green seats to select one or more seats for the same booking.</p>
           <button class="btn btn-ghost mt-2" disabled>Continue to Booking</button>
         </div>
       </div>

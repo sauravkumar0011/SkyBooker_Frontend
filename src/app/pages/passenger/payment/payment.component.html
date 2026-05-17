@@ -1,108 +1,128 @@
 <div class="page-wrapper">
   <div class="container section">
-    <div *ngIf="ticketReady && booking && passenger" class="ticket-shell animate-fade-up">
-      <div class="page-header ticket-header">
+    <div *ngIf="ticketReady && booking" class="ticket-shell animate-fade-up">
+      <div class="page-header ticket-header print-hide">
         <h1>Your E-Ticket Is Ready</h1>
         <p>Payment completed successfully. Your booking is confirmed and ready to travel.</p>
       </div>
 
-      <div class="ticket-board">
-        <div class="ticket-band">
-          <div class="ticket-brand">
-            <span class="band-plane left" aria-hidden="true"></span>
-            <span class="brand-text">SkyBooker Airlines</span>
-            <span class="band-plane right" aria-hidden="true"></span>
+      <div class="ticket-document">
+        <div class="ticket-topbar">
+          <div class="ticket-brand-block">
+            <div>
+              <div class="ticket-brand-name">SkyBooker</div>
+              <div class="ticket-brand-subtitle">E-Ticket Itinerary</div>
+            </div>
           </div>
-          <div class="ticket-band-title">Boarding Pass</div>
+
+          <div class="ticket-status-block">
+            <div class="ticket-status-badge">
+              <span class="status-check" aria-hidden="true">&#10003;</span>
+              <span>Booking Confirmed</span>
+            </div>
+            <div class="ticket-status-meta">
+              <span>Booking Date: {{bookingDateLabel}}</span>
+              <span>Booking Time: {{bookingTimeLabel}}</span>
+            </div>
+          </div>
         </div>
 
-        <div class="ticket-lower">
-          <div class="ticket-main">
-            <div class="ticket-barcode" aria-hidden="true"></div>
+        <div class="ticket-greeting">
+          <p>Dear Passenger, your flight booking for <strong class="journey-route-accent">{{routeCode}}</strong> is confirmed.</p>
+          <div class="journey-heading">
+            <div class="journey-airline-flight">Flight {{flight?.flightNumber || booking.flightId}}</div>
+            <div class="journey-airline-booking">Booking ID {{booking.bookingId}}</div>
+          </div>
+        </div>
 
-            <div class="ticket-content">
-              <div class="ticket-info-grid">
-                <div class="ticket-info-row">
-                  <span class="ticket-label">Passenger</span>
-                  <span class="ticket-value">{{passenger.firstName}} {{passenger.lastName}}</span>
-                </div>
-                <div class="ticket-info-row">
-                  <span class="ticket-label">Flight</span>
-                  <span class="ticket-value">{{flight?.flightNumber || booking.flightId}}</span>
-                </div>
-                <div class="ticket-info-row">
-                  <span class="ticket-label">From</span>
-                  <span class="ticket-value">{{flight?.originAirportCode || 'ORG'}}</span>
-                </div>
-                <div class="ticket-info-row">
-                  <span class="ticket-label">To</span>
-                  <span class="ticket-value">{{flight?.destinationAirportCode || 'DST'}}</span>
-                </div>
-                <div class="ticket-info-row">
-                  <span class="ticket-label">Date</span>
-                  <span class="ticket-value">{{flight?.departureTime | date:'d MMM'}}</span>
-                </div>
-                <div class="ticket-info-row">
-                  <span class="ticket-label">Boarding Time</span>
-                  <span class="ticket-value">{{flight?.departureTime | date:'shortTime'}}</span>
-                </div>
-              </div>
+        <div class="journey-card">
+          <div class="journey-segment">
+            <div class="journey-point">
+              <div class="journey-city">{{flight?.originAirportCode || 'ORG'}}</div>
+              <div class="journey-time">{{departureTimeLabel}}</div>
+              <div class="journey-date">{{flightDateLabel}}</div>
+            </div>
 
-              <div class="ticket-focus-grid">
-                <div class="focus-card">
-                  <span class="focus-label">Seat</span>
-                  <span class="focus-value">{{seatNumber}}</span>
-                </div>
-                <div class="focus-card">
-                  <span class="focus-label">PNR</span>
-                  <span class="focus-value">{{booking.pnrCode}}</span>
-                </div>
-                <div class="focus-card">
-                  <span class="focus-label">Fare</span>
-                  <span class="focus-value">&#8377;{{booking.totalFare | number:'1.2-2'}}</span>
-                </div>
-              </div>
-
-              <div class="ticket-note">
-                Please arrive at the gate at least 20 minutes before departure.
+            <div class="journey-line">
+              <div class="journey-duration">{{journeyDurationLabel}}</div>
+              <div class="journey-track">
+                <span class="journey-dot"></span>
+                <span class="journey-bar"></span>
+                <span class="journey-arrow">&rarr;</span>
               </div>
             </div>
-          </div>
 
-          <div class="ticket-stub">
-            <div class="stub-title">Boarding Pass</div>
-            <div class="stub-mini-grid">
-              <div class="stub-mini-row">
-                <span class="stub-label">Name</span>
-                <span class="stub-value">{{passenger.firstName}} / {{passenger.lastName}}</span>
-              </div>
-              <div class="stub-mini-row">
-                <span class="stub-label">From</span>
-                <span class="stub-value">{{flight?.originAirportCode || 'ORG'}}</span>
-              </div>
-              <div class="stub-mini-row">
-                <span class="stub-label">To</span>
-                <span class="stub-value">{{flight?.destinationAirportCode || 'DST'}}</span>
-              </div>
-              <div class="stub-mini-row">
-                <span class="stub-label">Flight</span>
-                <span class="stub-value">{{flight?.flightNumber || booking.flightId}}</span>
-              </div>
-              <div class="stub-mini-row">
-                <span class="stub-label">Date</span>
-                <span class="stub-value">{{flight?.departureTime | date:'d MMM'}}</span>
-              </div>
-              <div class="stub-mini-row">
-                <span class="stub-label">Seat</span>
-                <span class="stub-value">{{seatNumber}}</span>
-              </div>
+            <div class="journey-point">
+              <div class="journey-city">{{flight?.destinationAirportCode || 'DST'}}</div>
+              <div class="journey-time">{{arrivalTimeLabel}}</div>
+              <div class="journey-date">{{flightDateLabel}}</div>
             </div>
-            <div class="stub-barcode" aria-hidden="true"></div>
           </div>
+        </div>
+
+        <div class="ticket-section">
+          <div class="ticket-section-heading">Passengers - {{passengerCount}} Adult{{passengerCount > 1 ? 's' : ''}}</div>
+          <div class="ticket-table-wrap">
+            <table class="ticket-table">
+              <thead>
+                <tr>
+                  <th>Passenger</th>
+                  <th>Airline</th>
+                  <th>Status</th>
+                  <th>Sector</th>
+                  <th>Airline PNR</th>
+                  <th>Ticket Number</th>
+                  <th>Seat No</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of passengers; let i = index">
+                  <td>{{item.firstName}} {{item.lastName}}</td>
+                  <td>{{flight?.flightNumber || booking.flightId}}</td>
+                  <td>Confirmed</td>
+                  <td>{{routeCode}}</td>
+                  <td>{{booking.pnrCode}}</td>
+                  <td>{{item.ticketNumber || '--'}}</td>
+                  <td>{{getSeatNumberForPassenger(item, i)}}</td>
+                </tr>
+                <tr *ngIf="!passengers.length">
+                  <td>{{passenger ? (passenger.firstName + ' ' + passenger.lastName) : 'Passenger details loading'}}</td>
+                  <td>{{flight?.flightNumber || booking.flightId}}</td>
+                  <td>Confirmed</td>
+                  <td>{{routeCode}}</td>
+                  <td>{{booking.pnrCode}}</td>
+                  <td>{{passenger?.ticketNumber || '--'}}</td>
+                  <td>{{seatNumber}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="ticket-bottom-grid">
+          <div class="ticket-section fare-section">
+            <div class="ticket-section-heading split-heading">
+              <span>Fare Details</span>
+              <span>Amount (INR)</span>
+            </div>
+            <div class="fare-list">
+              <div class="fare-row"><span>Total Basic Fare</span><span>&#8377;{{booking.baseFare | number:'1.2-2'}}</span></div>
+              <div class="fare-row"><span>Taxes & Fees</span><span>&#8377;{{booking.taxes | number:'1.2-2'}}</span></div>
+              <div class="fare-row"><span>Baggage Charges</span><span><ng-container *ngIf="fareSummary; else noBaggageCharge">&#8377;{{fareSummary.baggageCharge | number:'1.2-2'}}</ng-container><ng-template #noBaggageCharge>--</ng-template></span></div>
+              <div class="fare-row"><span>Meal Charges</span><span><ng-container *ngIf="fareSummary; else noMealCharge">&#8377;{{fareSummary.mealCharge | number:'1.2-2'}}</ng-container><ng-template #noMealCharge>--</ng-template></span></div>
+              <div class="fare-row"><span>Meal Preference</span><span>{{mealLabel | titlecase}}</span></div>
+              <div class="fare-row total"><span>Total Amount</span><span>&#8377;{{booking.totalFare | number:'1.2-2'}}</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ticket-footer-note">
+          Please carry a valid government ID at the airport and report at least 2 hours before departure for a smooth boarding experience.
+          {{luggageFooterNote}} Excess baggage may attract additional airline charges, and cabin bags should keep valuables, medicines, and travel documents easily accessible.
         </div>
       </div>
 
-      <div class="ticket-actions">
+      <div class="ticket-actions print-hide">
         <button class="btn btn-primary btn-lg" (click)="printTicket()">Print Ticket</button>
         <button class="btn btn-ghost btn-lg" (click)="goToMyBookings()">My Bookings</button>
         <button class="btn btn-secondary btn-lg" (click)="bookAnotherFlight()">Book Another Flight</button>
@@ -113,7 +133,7 @@
       <app-loading-spinner
         [message]="
           generatingTicket
-            ? 'Generating your e-ticket...'
+            ? 'Finalizing your confirmed booking...'
             : processingPayment
               ? 'Opening Razorpay checkout...'
               : 'Preparing secure payment...'
@@ -207,6 +227,7 @@
             <div class="booking-summary-row"><span class="label">PNR</span><span class="value text-cyan">{{currentBooking.pnrCode}}</span></div>
             <div class="booking-summary-row"><span class="label">Flight ID</span><span class="value">{{currentBooking.flightId}}</span></div>
             <div class="booking-summary-row"><span class="label">Seat No</span><span class="value">{{seatNumber}}</span></div>
+            <div class="booking-summary-row"><span class="label">Passengers</span><span class="value">{{currentBooking.totalPassengers}}</span></div>
             <div class="booking-summary-row"><span class="label">Contact Email</span><span class="value wrap-value">{{currentBooking.contactEmail}}</span></div>
             <div class="booking-summary-row"><span class="label">Contact Phone</span><span class="value">{{currentBooking.contactPhone}}</span></div>
             <div class="booking-summary-row"><span class="label">Base Fare</span><span class="value">&#8377;{{currentBooking.baseFare | number:'1.2-2'}}</span></div>

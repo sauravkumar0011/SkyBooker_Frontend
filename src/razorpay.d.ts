@@ -49,6 +49,7 @@ declare global {
 
   interface RazorpayInstance {
     open(): void;
+    close(): void;
     on(event: 'payment.failed', handler: (response: RazorpayFailureResponse) => void): void;
   }
 

@@ -4,13 +4,21 @@
 
     <div class="page-header">
       <h1>Complete Your Booking</h1>
-      <p>Fill in travel and passenger details, calculate fare once, then continue to payment.</p>
+      <p>Enter shared travel preferences, add one passenger for each selected seat, then pay once for the whole booking.</p>
     </div>
 
     <div class="booking-grid">
       <div class="card">
-        <h3 class="mb-3">Travel Preferences</h3>
         <form [formGroup]="form" (ngSubmit)="onContinue()">
+          <div class="selection-strip">
+            <div>
+              <div class="selection-strip-label">Selected Seats</div>
+              <div class="selection-strip-value">{{selectedSeatSummary}}</div>
+            </div>
+            <div class="selection-strip-count">{{selectedSeatCount}} Passenger{{selectedSeatCount > 1 ? 's' : ''}}</div>
+          </div>
+
+          <h3 class="mb-3">Travel Preferences</h3>
           <div class="grid-2">
             <div class="form-group">
               <label class="form-label">Trip Type</label>
@@ -50,43 +58,77 @@
             <h3 class="mb-3">Passenger Details</h3>
           </div>
 
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label">First Name</label>
-              <input type="text" class="form-control" formControlName="firstName" placeholder="John" />
-              <span class="form-error" *ngIf="form.get('firstName')?.invalid && form.get('firstName')?.touched">Required</span>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Last Name</label>
-              <input type="text" class="form-control" formControlName="lastName" placeholder="Doe" />
-              <span class="form-error" *ngIf="form.get('lastName')?.invalid && form.get('lastName')?.touched">Required</span>
-            </div>
-          </div>
+          <div formArrayName="passengers" class="passenger-stack">
+            <div
+              *ngFor="let passengerGroup of passengerGroups; let i = index"
+              class="passenger-card"
+              [class.passenger-card-collapsed]="!isPassengerCardExpanded(i)"
+              [formGroupName]="i"
+            >
+              <div class="passenger-card-header">
+                <div class="passenger-card-heading">
+                  <div>
+                    <h4>{{getPassengerCardTitle(i)}}</h4>
+                    <div class="text-sm text-muted">Seat {{getSeatLabel(i)}}</div>
+                  </div>
+                  <p class="passenger-card-preview text-sm text-muted" *ngIf="!isPassengerCardExpanded(i)">
+                    {{getPassengerCardPreview(i)}}
+                  </p>
+                </div>
+                <div class="passenger-card-actions">
+                  <button
+                    type="button"
+                    class="passenger-toggle"
+                    [attr.aria-expanded]="isPassengerCardExpanded(i)"
+                    [attr.aria-label]="isPassengerCardExpanded(i) ? 'Collapse passenger details' : 'Expand passenger details'"
+                    (click)="togglePassengerCard(i)"
+                  >
+                    <span>{{isPassengerCardExpanded(i) ? 'Minimize' : 'Expand'}}</span>
+                    <span class="passenger-toggle-icon" [class.passenger-toggle-icon-collapsed]="!isPassengerCardExpanded(i)"></span>
+                  </button>
+                </div>
+              </div>
 
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label">Date of Birth</label>
-              <input type="date" class="form-control" formControlName="dateOfBirth" />
-              <span class="form-error" *ngIf="form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched">Required</span>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Gender</label>
-              <select class="form-control" formControlName="gender">
-                <option *ngFor="let g of genders" [value]="g">{{g | titlecase}}</option>
-              </select>
-            </div>
-          </div>
+              <div class="passenger-card-body" *ngIf="isPassengerCardExpanded(i)">
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label class="form-label">First Name <span class="required-mark">*</span></label>
+                    <input type="text" class="form-control" formControlName="firstName" placeholder="John" />
+                    <span class="form-error" *ngIf="passengerGroup.get('firstName')?.invalid && passengerGroup.get('firstName')?.touched">Required</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Last Name <span class="required-mark">*</span></label>
+                    <input type="text" class="form-control" formControlName="lastName" placeholder="Doe" />
+                    <span class="form-error" *ngIf="passengerGroup.get('lastName')?.invalid && passengerGroup.get('lastName')?.touched">Required</span>
+                  </div>
+                </div>
 
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label">Passport Number</label>
-              <input type="text" class="form-control" formControlName="passportNumber" placeholder="A1234567" />
-              <span class="form-error" *ngIf="form.get('passportNumber')?.invalid && form.get('passportNumber')?.touched">Required</span>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Nationality</label>
-              <input type="text" class="form-control" formControlName="nationality" placeholder="Indian" />
-              <span class="form-error" *ngIf="form.get('nationality')?.invalid && form.get('nationality')?.touched">Required</span>
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Date of Birth <span class="required-mark">*</span></label>
+                    <input type="date" class="form-control" formControlName="dateOfBirth" />
+                    <span class="form-error" *ngIf="passengerGroup.get('dateOfBirth')?.invalid && passengerGroup.get('dateOfBirth')?.touched">Required</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Gender <span class="required-mark">*</span></label>
+                    <select class="form-control" formControlName="gender">
+                      <option *ngFor="let g of genders" [value]="g">{{g | titlecase}}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Passport Number <span class="optional-copy">(Optional)</span></label>
+                    <input type="text" class="form-control" formControlName="passportNumber" placeholder="A1234567" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Nationality <span class="required-mark">*</span></label>
+                    <input type="text" class="form-control" formControlName="nationality" placeholder="Indian" />
+                    <span class="form-error" *ngIf="passengerGroup.get('nationality')?.invalid && passengerGroup.get('nationality')?.touched">Required</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -108,11 +150,13 @@
           <app-loading-spinner *ngIf="!loadingDetails && loadingFare" message="Calculating fare..."></app-loading-spinner>
 
           <div *ngIf="!loadingDetails && flight">
+            <div class="summary-chip-row mb-3">
+
+            </div>
             <div *ngIf="fareSummary" class="fare-total-card">
               <div class="fare-total-topline">
                 <div>
                   <div class="fare-total-label">Estimated Total</div>
-                  <p class="fare-total-note">Includes taxes and your selected booking preferences.</p>
                 </div>
                 <button type="button" class="btn btn-secondary btn-sm" (click)="toggleFareDetails()">
                   {{showFareDetails ? 'Hide Details' : 'View Details'}}
@@ -145,7 +189,7 @@
             </div>
 
             <div *ngIf="!fareSummary && !loadingFare" class="fare-placeholder mt-3">
-              <p class="text-muted">Fill all booking and passenger details, then click <strong>Calculate Fare</strong>.</p>
+              <p class="text-muted">Fill the shared travel details, complete each passenger card, then click <strong>Calculate Fare</strong>.</p>
             </div>
           </div>
         </div>

@@ -1,21 +1,25 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute, Params, Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { BookingService } from '../../../core/services/booking.service';
 import { FlightService } from '../../../core/services/flight.service';
 import { SeatService } from '../../../core/services/seat.service';
+import { PassengerService } from '../../../core/services/passenger.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { Booking, BookingRequest, FareSummaryResponse, Flight, PassengerRequest, Seat } from '../../../models';
+import {
+  Booking,
+  BookingRequest,
+  FareSummaryResponse,
+  Flight,
+  PassengerBulkRequest,
+  PassengerRequest,
+  Seat
+} from '../../../models';
 
-type PassengerDraft = Omit<PassengerRequest, 'bookingId'>;
-
-type BookingFormDraft = {
-  tripType: string;
-  mealPreference: string;
-  luggageKg: number;
-  contactEmail: string;
-  contactPhone: string;
+type PassengerDraft = {
+  seatId: string;
   firstName: string;
   lastName: string;
   dateOfBirth: string;
@@ -24,34 +28,38 @@ type BookingFormDraft = {
   nationality: string;
 };
 
+type BookingFormDraft = {
+  tripType: string;
+  mealPreference: string;
+  luggageKg: number;
+  contactEmail: string;
+  contactPhone: string;
+  passengers: PassengerDraft[];
+};
+
 @Component({
   selector: 'app-booking',
   templateUrl: './booking.component.html',
   styleUrls: ['./booking.component.css']
 })
-export class BookingComponent implements OnInit, OnDestroy {
-  private readonly taxRate = 0.18;
-
+export class BookingComponent implements OnInit {
   form: FormGroup;
   loading = false;
   loadingDetails = true;
   loadingFare = false;
   flightId = '';
-  seatId = '';
+  seatIds: string[] = [];
   flight: Flight | null = null;
-  selectedSeat: Seat | null = null;
+  selectedSeats: Seat[] = [];
   fareSummary: FareSummaryResponse | null = null;
   showFareDetails = false;
   retryBooking: Booking | null = null;
   autoRestoreFare = false;
-  holdingSeat = false;
-  holdReference = '';
+  passengerCardExpanded: boolean[] = [];
 
   mealOptions = ['STANDARD', 'VEGETARIAN', 'VEGAN', 'HALAL', 'KOSHER', 'GLUTEN_FREE'];
   tripTypes = ['ONE_WAY', 'ROUND_TRIP'];
   genders = ['MALE', 'FEMALE', 'OTHER'];
-  private heldSeatId = '';
-  private proceedingToPayment = false;
 
   constructor(
     private fb: FormBuilder,
@@ -60,6 +68,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     private bookingService: BookingService,
     private flightService: FlightService,
     private seatService: SeatService,
+    private passengerService: PassengerService,
     private auth: AuthService,
     private toast: ToastService
   ) {
@@ -69,28 +78,21 @@ export class BookingComponent implements OnInit, OnDestroy {
       luggageKg: [15, [Validators.required, Validators.min(0), Validators.max(50)]],
       contactEmail: [this.auth.getEmail(), [Validators.required, Validators.email]],
       contactPhone: ['', [Validators.required, Validators.pattern(/^\+?[0-9]{7,15}$/)]],
-      firstName: ['', [Validators.required, Validators.minLength(2)]],
-      lastName: ['', [Validators.required, Validators.minLength(2)]],
-      dateOfBirth: ['', Validators.required],
-      gender: ['MALE', Validators.required],
-      passportNumber: ['', Validators.required],
-      nationality: ['', Validators.required],
+      passengers: this.fb.array([]),
     });
   }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {
-      this.cleanupSeatHold();
       this.flightId = String(params['flightId'] || '').trim();
-      this.seatId = String(params['seatId'] || '').trim();
-      this.holdReference = this.getOrCreateHoldReference();
+      this.seatIds = this.parseSeatIds(params);
       this.retryBooking = this.readRetryBookingFromState();
+      this.syncPassengerForms();
       this.restoreBookingDraft();
-      this.holdSelectedSeat();
       this.loadDetails();
 
       if (history.state?.paymentFailed) {
-        this.toast.warning('Payment failed. Review your travel preferences and try again.');
+        this.toast.warning('Payment failed. Please review your details and try again.');
       }
     });
 
@@ -101,22 +103,38 @@ export class BookingComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy(): void {
-    if (this.proceedingToPayment) return;
-    this.cleanupSeatHold();
+  get passengerArray(): FormArray {
+    return this.form.get('passengers') as FormArray;
   }
 
-  get selectedSeatLabel(): string {
-    return this.selectedSeat?.seatNumber || 'Selected seat';
+  get passengerGroups(): FormGroup[] {
+    return this.passengerArray.controls as FormGroup[];
+  }
+
+  get selectedSeatCount(): number {
+    return this.seatIds.length;
+  }
+
+  get selectedSeatSummary(): string {
+    const labels = this.selectedSeats.length
+      ? this.selectedSeats.map(seat => seat.seatNumber)
+      : this.seatIds;
+
+    return labels.join(', ');
   }
 
   calculateFare(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
+    if (this.form.get('tripType')?.invalid || this.form.get('luggageKg')?.invalid
+      || this.form.get('contactEmail')?.invalid || this.form.get('contactPhone')?.invalid) {
+      this.form.get('tripType')?.markAsTouched();
+      this.form.get('luggageKg')?.markAsTouched();
+      this.form.get('contactEmail')?.markAsTouched();
+      this.form.get('contactPhone')?.markAsTouched();
       return;
     }
-    if (!this.flight) {
-      this.toast.warning('Flight details are still loading.');
+
+    if (!this.flight || !this.seatIds.length) {
+      this.toast.warning('Flight or seat details are still loading.');
       return;
     }
 
@@ -142,9 +160,11 @@ export class BookingComponent implements OnInit, OnDestroy {
   onContinue(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.expandInvalidPassengerCards();
       return;
     }
-    if (!this.flight || !this.fareSummary) {
+
+    if (!this.flight || !this.fareSummary || !this.seatIds.length) {
       this.toast.warning('Calculate fare before continuing to payment.');
       return;
     }
@@ -152,9 +172,6 @@ export class BookingComponent implements OnInit, OnDestroy {
     this.storeBookingDraft();
 
     if (this.retryBooking?.bookingId && this.retryBooking.status === 'PENDING') {
-      this.storePassengerDraft(this.retryBooking.bookingId);
-      this.persistBookingHoldReference(this.retryBooking.bookingId);
-      this.proceedingToPayment = true;
       this.router.navigate(['/passenger/payment', this.retryBooking.bookingId], {
         state: {
           booking: this.retryBooking,
@@ -162,9 +179,8 @@ export class BookingComponent implements OnInit, OnDestroy {
           selectedPaymentMode: 'UPI',
           returnToBooking: {
             flightId: this.flightId,
-            seatId: this.seatId,
+            seatIds: this.seatIds,
           },
-          holdReference: this.holdReference,
         }
       });
       return;
@@ -173,40 +189,107 @@ export class BookingComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.bookingService.createBooking(this.buildBookingPayload()).subscribe({
       next: booking => {
-        this.storePassengerDraft(booking.bookingId);
-        this.persistBookingHoldReference(booking.bookingId);
-        this.loading = false;
-        this.proceedingToPayment = true;
-        this.router.navigate(['/passenger/payment', booking.bookingId], {
-          state: {
-            booking,
-            autoStart: true,
-            selectedPaymentMode: 'UPI',
-            returnToBooking: {
-              flightId: this.flightId,
-              seatId: this.seatId,
-            },
-            holdReference: this.holdReference,
+        const passengerPayload: PassengerBulkRequest = {
+          bookingId: booking.bookingId,
+          passengers: this.buildPassengerPayloads(),
+        };
+
+        this.passengerService.createPassengers(passengerPayload).subscribe({
+          next: () => {
+            this.loading = false;
+            this.router.navigate(['/passenger/payment', booking.bookingId], {
+              state: {
+                booking,
+                autoStart: true,
+                selectedPaymentMode: 'UPI',
+                returnToBooking: {
+                  flightId: this.flightId,
+                  seatIds: this.seatIds,
+                },
+              }
+            });
+          },
+          error: () => {
+            this.bookingService.cancelBooking(booking.bookingId).subscribe({ error: () => {} });
+            this.loading = false;
+            this.toast.error('We could not save passenger details for this booking. Please try again.');
           }
         });
       },
       error: () => {
         this.loading = false;
-        this.proceedingToPayment = false;
       }
     });
   }
 
+  getSeatLabel(index: number): string {
+    return this.selectedSeats[index]?.seatNumber || this.seatIds[index] || `Seat ${index + 1}`;
+  }
+
+  isPassengerCardExpanded(index: number): boolean {
+    return this.passengerCardExpanded[index] !== false;
+  }
+
+  togglePassengerCard(index: number): void {
+    this.passengerCardExpanded[index] = !this.isPassengerCardExpanded(index);
+  }
+
+  getPassengerCardTitle(index: number): string {
+    const group = this.passengerGroups[index];
+    if (!group) return `Passenger ${index + 1}`;
+
+    const firstName = String(group.get('firstName')?.value || '').trim();
+    const lastName = String(group.get('lastName')?.value || '').trim();
+    const fullName = [firstName, lastName].filter(Boolean).join(' ');
+
+    return fullName || `Passenger ${index + 1}`;
+  }
+
+  getPassengerCardStatus(index: number): string {
+    const missingRequiredFields = this.getPassengerMissingRequiredFields(index);
+
+    if (missingRequiredFields === 0) {
+      return 'Required details complete';
+    }
+
+    return `${missingRequiredFields} required field${missingRequiredFields > 1 ? 's' : ''} left`;
+  }
+
+  getPassengerCardPreview(index: number): string {
+    const group = this.passengerGroups[index];
+    if (!group) return 'Fill the passenger details';
+
+    const nationality = String(group.get('nationality')?.value || '').trim();
+    const passportNumber = this.normalizeOptionalPassport(group.get('passportNumber')?.value);
+    const previewParts = [
+      nationality ? `Nationality: ${nationality}` : '',
+      passportNumber ? `Passport: ${passportNumber}` : 'Passport: Optional',
+    ].filter(Boolean);
+
+    return previewParts.join(' | ');
+  }
+
   private loadDetails(): void {
-    if (!this.flightId) {
+    if (!this.flightId || !this.seatIds.length) {
       this.loadingDetails = false;
       return;
     }
 
     this.loadingDetails = true;
-    this.flightService.getFlightById(this.flightId).subscribe({
-      next: flight => {
+    forkJoin({
+      flight: this.flightService.getFlightById(this.flightId),
+      seats: this.seatService.getSeatMap(this.flightId),
+    }).subscribe({
+      next: ({ flight, seats }) => {
         this.flight = flight;
+        this.selectedSeats = this.seatIds
+          .map(seatId => seats.find(seat => String(seat.seatId) === seatId) || null)
+          .filter((seat): seat is Seat => Boolean(seat));
+
+        if (!this.selectedSeats.length) {
+          this.toast.warning('Selected seats could not be restored. Please choose seats again.');
+        }
+
         this.loadingDetails = false;
 
         if (this.autoRestoreFare && this.form.valid) {
@@ -214,66 +297,41 @@ export class BookingComponent implements OnInit, OnDestroy {
           this.calculateFare();
         }
       },
-      error: () => { this.loadingDetails = false; }
-    });
-
-    this.seatService.getSeatMap(this.flightId).subscribe({
-      next: seats => {
-        this.selectedSeat = seats.find(seat => String(seat.seatId) === this.seatId) || null;
-      }
-    });
-  }
-
-  private holdSelectedSeat(): void {
-    if (!this.seatId || !this.holdReference || this.heldSeatId === this.seatId) return;
-
-    this.holdingSeat = true;
-    this.seatService.holdSeat(this.seatId, this.holdReference).subscribe({
-      next: () => {
-        this.heldSeatId = this.seatId;
-        this.holdingSeat = false;
-      },
       error: () => {
-        this.clearStoredHoldReference();
-        this.holdReference = '';
-        this.holdingSeat = false;
-        this.toast.warning('This seat could not be reserved. Please choose another seat.');
-        this.router.navigate(['/passenger/seats', this.flightId]);
+        this.loadingDetails = false;
       }
     });
   }
 
   private buildBookingPayload(): BookingRequest {
     const value = this.form.getRawValue();
-    const baseFare = Number(this.flight?.basePrice || 0);
 
     return {
       userId: this.auth.getUserIdValue(),
       flightId: this.flightId,
-      seatId: this.seatId,
+      seatIds: this.seatIds,
       tripType: value.tripType,
-      baseFare,
-      taxes: this.calculateTaxes(baseFare),
       mealPreference: value.mealPreference,
       luggageKg: Number(value.luggageKg || 0),
       contactEmail: String(value.contactEmail || '').trim(),
       contactPhone: String(value.contactPhone || '').trim(),
-      holdReference: this.holdReference || undefined,
     };
   }
 
-  private buildPassengerDraft(): PassengerDraft {
-    const value = this.form.getRawValue();
+  private buildPassengerPayloads(): PassengerRequest[] {
+    return this.passengerGroups.map((group, index) => {
+      const value = group.getRawValue();
 
-    return {
-      seatId: this.seatId,
-      firstName: String(value.firstName || '').trim(),
-      lastName: String(value.lastName || '').trim(),
-      dateOfBirth: value.dateOfBirth,
-      gender: value.gender,
-      passportNumber: String(value.passportNumber || '').trim(),
-      nationality: String(value.nationality || '').trim(),
-    };
+      return {
+        seatId: this.seatIds[index],
+        firstName: String(value.firstName || '').trim(),
+        lastName: String(value.lastName || '').trim(),
+        dateOfBirth: value.dateOfBirth,
+        gender: value.gender,
+        passportNumber: this.normalizeOptionalPassport(value.passportNumber),
+        nationality: String(value.nationality || '').trim(),
+      };
+    });
   }
 
   private buildBookingFormDraft(): BookingFormDraft {
@@ -285,41 +343,116 @@ export class BookingComponent implements OnInit, OnDestroy {
       luggageKg: Number(value.luggageKg || 0),
       contactEmail: String(value.contactEmail || '').trim(),
       contactPhone: String(value.contactPhone || '').trim(),
-      firstName: String(value.firstName || '').trim(),
-      lastName: String(value.lastName || '').trim(),
-      dateOfBirth: value.dateOfBirth,
-      gender: value.gender,
-      passportNumber: String(value.passportNumber || '').trim(),
-      nationality: String(value.nationality || '').trim(),
+      passengers: this.passengerGroups.map((group, index) => {
+        const passenger = group.getRawValue();
+
+        return {
+          seatId: this.seatIds[index],
+          firstName: String(passenger.firstName || '').trim(),
+          lastName: String(passenger.lastName || '').trim(),
+          dateOfBirth: passenger.dateOfBirth,
+          gender: passenger.gender,
+          passportNumber: String(passenger.passportNumber || '').trim(),
+          nationality: String(passenger.nationality || '').trim(),
+        };
+      }),
     };
   }
 
-  private storePassengerDraft(bookingId: string): void {
-    sessionStorage.setItem(`pending-passenger:${bookingId}`, JSON.stringify(this.buildPassengerDraft()));
-  }
-
   private storeBookingDraft(): void {
-    if (!this.flightId || !this.seatId) return;
+    if (!this.flightId || !this.seatIds.length) return;
     sessionStorage.setItem(this.getBookingDraftKey(), JSON.stringify(this.buildBookingFormDraft()));
   }
 
   private restoreBookingDraft(): void {
-    if (!this.flightId || !this.seatId) return;
+    if (!this.flightId || !this.seatIds.length) return;
 
     const rawDraft = sessionStorage.getItem(this.getBookingDraftKey());
     if (!rawDraft) return;
 
     try {
       const draft = JSON.parse(rawDraft) as Partial<BookingFormDraft>;
-      this.form.patchValue(draft, { emitEvent: false });
+      this.form.patchValue({
+        tripType: draft.tripType,
+        mealPreference: draft.mealPreference,
+        luggageKg: draft.luggageKg,
+        contactEmail: draft.contactEmail,
+        contactPhone: draft.contactPhone,
+      }, { emitEvent: false });
+      this.syncPassengerForms(draft.passengers || []);
       this.autoRestoreFare = true;
     } catch {
       sessionStorage.removeItem(this.getBookingDraftKey());
     }
   }
 
+  private syncPassengerForms(passengerDrafts: Partial<PassengerDraft>[] = []): void {
+    const passengerBySeatId = new Map<string, Partial<PassengerDraft>>();
+    passengerDrafts.forEach((draft, index) => {
+      const seatId = String(draft.seatId || this.seatIds[index] || '').trim();
+      if (seatId) {
+        passengerBySeatId.set(seatId, draft);
+      }
+    });
+
+    const groups = this.seatIds.map(seatId => this.createPassengerGroup(passengerBySeatId.get(seatId)));
+    this.form.setControl('passengers', this.fb.array(groups));
+    this.passengerCardExpanded = this.seatIds.map((_, index) => this.passengerCardExpanded[index] ?? true);
+  }
+
+  private createPassengerGroup(draft?: Partial<PassengerDraft>): FormGroup {
+    return this.fb.group({
+      firstName: [draft?.firstName || '', [Validators.required, Validators.minLength(2)]],
+      lastName: [draft?.lastName || '', [Validators.required, Validators.minLength(2)]],
+      dateOfBirth: [draft?.dateOfBirth || '', Validators.required],
+      gender: [draft?.gender || 'MALE', Validators.required],
+      passportNumber: [draft?.passportNumber || ''],
+      nationality: [draft?.nationality || '', Validators.required],
+    });
+  }
+
+  private expandInvalidPassengerCards(): void {
+    this.passengerGroups.forEach((group, index) => {
+      if (group.invalid) {
+        this.passengerCardExpanded[index] = true;
+      }
+    });
+  }
+
+  private getPassengerMissingRequiredFields(index: number): number {
+    const group = this.passengerGroups[index];
+    if (!group) return 0;
+
+    return ['firstName', 'lastName', 'dateOfBirth', 'gender', 'nationality']
+      .filter(controlName => group.get(controlName)?.invalid)
+      .length;
+  }
+
+  private normalizeOptionalPassport(value: unknown): string | null {
+    const normalized = String(value || '').trim();
+    return normalized || null;
+  }
+
   private getBookingDraftKey(): string {
-    return `booking-form:${this.flightId}:${this.seatId}`;
+    return `booking-form:${this.flightId}:${this.seatIds.join(',')}`;
+  }
+
+  private parseSeatIds(params: Params): string[] {
+    const rawSeatIds = params['seatIds'];
+    const values = Array.isArray(rawSeatIds) ? rawSeatIds : rawSeatIds ? [rawSeatIds] : [];
+    const parsed = values
+      .flatMap(value => String(value).split(','))
+      .map(value => value.trim())
+      .filter(Boolean);
+
+    if (!parsed.length) {
+      const fallbackSeatId = String(params['seatId'] || '').trim();
+      if (fallbackSeatId) {
+        parsed.push(fallbackSeatId);
+      }
+    }
+
+    return Array.from(new Set(parsed));
   }
 
   private readRetryBookingFromState(): Booking | null {
@@ -327,62 +460,5 @@ export class BookingComponent implements OnInit, OnDestroy {
       || history.state?.retryBooking) as Booking | undefined;
 
     return booking?.bookingId ? booking : null;
-  }
-
-  private calculateTaxes(baseFare: number): number {
-    return Number((baseFare * this.taxRate).toFixed(2));
-  }
-
-  private cleanupSeatHold(): void {
-    if (!this.heldSeatId || !this.holdReference) return;
-
-    const seatId = this.heldSeatId;
-    const holdReference = this.holdReference;
-    this.heldSeatId = '';
-    this.holdReference = '';
-    this.clearStoredHoldReference();
-    this.seatService.releaseSeat(seatId, holdReference).subscribe({ error: () => {} });
-  }
-
-  private getOrCreateHoldReference(): string {
-    if (!this.flightId || !this.seatId) return '';
-
-    const savedReference = sessionStorage.getItem(this.getSeatHoldKey());
-    if (savedReference) return savedReference;
-
-    const holdReference = this.createHoldReference();
-    sessionStorage.setItem(this.getSeatHoldKey(), holdReference);
-    return holdReference;
-  }
-
-  private persistBookingHoldReference(bookingId: string): void {
-    if (!bookingId || !this.holdReference) return;
-    sessionStorage.setItem(this.getBookingHoldKey(bookingId), this.holdReference);
-  }
-
-  private clearStoredHoldReference(): void {
-    if (this.flightId && this.seatId) {
-      sessionStorage.removeItem(this.getSeatHoldKey());
-    }
-
-    if (this.retryBooking?.bookingId) {
-      sessionStorage.removeItem(this.getBookingHoldKey(this.retryBooking.bookingId));
-    }
-  }
-
-  private getSeatHoldKey(): string {
-    return `seat-hold:${this.flightId}:${this.seatId}`;
-  }
-
-  private getBookingHoldKey(bookingId: string): string {
-    return `seat-hold-booking:${bookingId}`;
-  }
-
-  private createHoldReference(): string {
-    if (globalThis.crypto?.randomUUID) {
-      return globalThis.crypto.randomUUID();
-    }
-
-    return `hold-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   }
 }

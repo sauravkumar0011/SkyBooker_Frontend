@@ -1,9 +1,10 @@
-import { HTTP_INTERCEPTORS, HttpClient } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClient, HttpContext } from '@angular/common/http';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from '../services/auth.service';
 import { ToastService } from '../services/toast.service';
+import { SUPPRESS_GLOBAL_ERROR_TOAST } from './http-context-tokens';
 import { JwtInterceptor } from './jwt.interceptor';
 
 describe('JwtInterceptor', () => {
@@ -100,5 +101,16 @@ describe('JwtInterceptor', () => {
     req.flush({ message: 'Something specific broke.' }, { status: 500, statusText: 'Server Error' });
 
     expect(toast.error).toHaveBeenCalledWith('Something specific broke.');
+  });
+
+  it('should suppress generic error toasts when the request handles the error locally', () => {
+    http.get('/secure', {
+      context: new HttpContext().set(SUPPRESS_GLOBAL_ERROR_TOAST, true),
+    }).subscribe({ error: () => {} });
+
+    const req = httpMock.expectOne('/secure');
+    req.flush({ message: 'Only pending bookings can be confirmed' }, { status: 409, statusText: 'Conflict' });
+
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });

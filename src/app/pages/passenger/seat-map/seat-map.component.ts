@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Params, Router } from '@angular/router';
 import { SeatService } from '../../../core/services/seat.service';
 import { FlightService } from '../../../core/services/flight.service';
 import { Flight, Seat, SeatClass } from '../../../models';
@@ -16,7 +16,7 @@ type SeatMapRow = { label: string; left: (Seat | null)[]; right: (Seat | null)[]
 export class SeatMapComponent implements OnInit {
   seats: Seat[] = [];
   flight: Flight | null = null;
-  selectedSeat: Seat | null = null;
+  selectedSeats: Seat[] = [];
   loading = true;
   flightId!: string;
   leftSeatColumns: string[] = [];
@@ -36,9 +36,18 @@ export class SeatMapComponent implements OnInit {
   ngOnInit(): void {
     this.flightId = this.route.snapshot.paramMap.get('flightId') || '';
     this.loadFlight();
+    this.restoreSelectionFromQuery(this.route.snapshot.queryParams);
+
     this.seatService.getSeatMap(this.flightId).subscribe({
-      next: data => { this.seats = data.map(seat => this.normalizeSeat(seat)); this.buildGrid(); this.loading = false; },
-      error: () => { this.loading = false; }
+      next: data => {
+        this.seats = data.map(seat => this.normalizeSeat(seat));
+        this.buildGrid();
+        this.reconcileSelectedSeats();
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+      }
     });
   }
 
@@ -47,8 +56,28 @@ export class SeatMapComponent implements OnInit {
   }
 
   get seatMapSubtitle(): string {
-    if (!this.flight) return 'Choose an available seat for this flight.';
+    if (!this.flight) return 'Choose one or more available seats for this flight.';
     return `${this.flight.originAirportCode} to ${this.flight.destinationAirportCode}`;
+  }
+
+  get hasSelectedSeats(): boolean {
+    return this.selectedSeats.length > 0;
+  }
+
+  get selectedSeatCount(): number {
+    return this.selectedSeats.length;
+  }
+
+  get selectedSeatIds(): string[] {
+    return this.selectedSeats.map(seat => seat.seatId);
+  }
+
+  get selectedSeatNumbers(): string[] {
+    return this.selectedSeats.map(seat => seat.seatNumber);
+  }
+
+  get selectedSeatQuery(): string {
+    return this.selectedSeatIds.join(',');
   }
 
   buildGrid(): void {
@@ -93,15 +122,30 @@ export class SeatMapComponent implements OnInit {
 
   selectSeat(seat: Seat): void {
     if (seat.status !== 'AVAILABLE') return;
-    this.selectedSeat = seat;
-    this.toast.info(`Seat ${seat.seatNumber} (${seat.seatClass}) selected`);
+
+    const existingIndex = this.selectedSeats.findIndex(selected => selected.seatId === seat.seatId);
+    if (existingIndex >= 0) {
+      this.selectedSeats = this.selectedSeats.filter(selected => selected.seatId !== seat.seatId);
+      return;
+    }
+
+    this.selectedSeats = [...this.selectedSeats, seat];
+  }
+
+  clearSelection(): void {
+    this.selectedSeats = [];
+  }
+
+  isSeatSelected(seat: Seat | null): boolean {
+    if (!seat) return false;
+    return this.selectedSeats.some(selected => selected.seatId === seat.seatId);
   }
 
   getSeatVisualClass(seat: Seat | null): string {
     if (!seat) return 'seat-shell seat-empty';
 
     const classes = ['seat-shell'];
-    if (this.selectedSeat?.seatId === seat.seatId) {
+    if (this.isSeatSelected(seat)) {
       classes.push('seat-selected');
     } else {
       switch (seat.status) {
@@ -132,7 +176,9 @@ export class SeatMapComponent implements OnInit {
 
   getSeatMapTitle(seat: Seat | null): string {
     if (!seat) return '';
-    return `${this.getSeatPosition(seat)}  ${seat.seatClass}  ${seat.status}`;
+
+    const statusLabel = this.isSeatSelected(seat) ? 'SELECTED' : seat.status;
+    return `${this.getSeatPosition(seat)}  ${seat.seatClass}  ${statusLabel}`;
   }
 
   shouldShowSeatClassSeparator(index: number): boolean {
@@ -160,28 +206,33 @@ export class SeatMapComponent implements OnInit {
   }
 
   continue(): void {
-    if (!this.selectedSeat) { this.toast.warning('Please select a seat to continue.'); return; }
+    if (!this.selectedSeats.length) {
+      this.toast.warning('Please select at least one seat to continue.');
+      return;
+    }
+
+    const seatIds = this.selectedSeatQuery;
 
     if (!this.auth.isLoggedIn()) {
       const returnUrl = this.router.createUrlTree(['/passenger/booking'], {
-        queryParams: { flightId: this.flightId, seatId: this.selectedSeat.seatId }
+        queryParams: { flightId: this.flightId, seatIds }
       }).toString();
 
-      this.toast.info('Please sign in or create an account to book this seat.');
+      this.toast.info('Please sign in or create an account to book these seats.');
       this.router.navigate(['/login'], { queryParams: { returnUrl } });
       return;
     }
 
     this.router.navigate(['/passenger/booking'], {
-      queryParams: { flightId: this.flightId, seatId: this.selectedSeat.seatId }
+      queryParams: { flightId: this.flightId, seatIds }
     });
   }
 
   get bookingReturnUrl(): string {
-    if (!this.selectedSeat) return '/passenger/flights';
+    if (!this.selectedSeats.length) return '/passenger/flights';
 
     return this.router.createUrlTree(['/passenger/booking'], {
-      queryParams: { flightId: this.flightId, seatId: this.selectedSeat.seatId }
+      queryParams: { flightId: this.flightId, seatIds: this.selectedSeatQuery }
     }).toString();
   }
 
@@ -193,6 +244,47 @@ export class SeatMapComponent implements OnInit {
         this.flight = flight;
       }
     });
+  }
+
+  private restoreSelectionFromQuery(params: Params): void {
+    const seatIds = this.parseSeatIds(params);
+    if (!seatIds.length) return;
+
+    this.selectedSeats = seatIds.map(seatId => ({
+      seatId,
+      flightId: this.flightId,
+      seatNumber: '',
+      seatClass: 'ECONOMY',
+      status: 'AVAILABLE',
+      priceMultiplier: 1,
+    }));
+  }
+
+  private reconcileSelectedSeats(): void {
+    if (!this.selectedSeats.length) return;
+
+    const selectedIds = this.selectedSeats.map(seat => seat.seatId);
+    this.selectedSeats = selectedIds
+      .map(seatId => this.seats.find(seat => seat.seatId === seatId))
+      .filter((seat): seat is Seat => Boolean(seat));
+  }
+
+  private parseSeatIds(params: Params): string[] {
+    const rawSeatIds = params['seatIds'];
+    const values = Array.isArray(rawSeatIds) ? rawSeatIds : rawSeatIds ? [rawSeatIds] : [];
+    const parsed = values
+      .flatMap(value => String(value).split(','))
+      .map(value => value.trim())
+      .filter(Boolean);
+
+    if (!parsed.length) {
+      const fallbackSeatId = String(params['seatId'] || '').trim();
+      if (fallbackSeatId) {
+        parsed.push(fallbackSeatId);
+      }
+    }
+
+    return Array.from(new Set(parsed));
   }
 
   private normalizeSeat(seat: Seat): Seat {

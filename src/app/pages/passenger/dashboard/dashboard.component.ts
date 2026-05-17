@@ -34,9 +34,9 @@ export class PassengerDashboardComponent implements OnInit {
   loadBookings(): void {
     this.bookingService.getBookingsByUser(this.auth.getUserId()).subscribe({
       next: data => {
-        this.bookings = data;
+        this.bookings = data.filter(booking => this.shouldDisplayBooking(booking));
         this.loadingBookings = false;
-        this.loadFlightLabels(data);
+        this.loadFlightLabels(this.bookings);
       },
       error: () => { this.loadingBookings = false; }
     });
@@ -96,5 +96,9 @@ export class PassengerDashboardComponent implements OnInit {
       CANCELLED: 'badge-danger', COMPLETED: 'badge-info'
     };
     return map[status] || 'badge-default';
+  }
+
+  private shouldDisplayBooking(booking: Booking): boolean {
+    return booking.status === 'CONFIRMED' || booking.status === 'CANCELLED';
   }
 }

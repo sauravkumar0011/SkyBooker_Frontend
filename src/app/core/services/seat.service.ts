@@ -1,8 +1,13 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Seat, SeatRequest, BulkSeatRequest, SeatClass } from '../../models';
+import { SUPPRESS_GLOBAL_ERROR_TOAST } from '../interceptors/http-context-tokens';
+
+type ReleaseSeatOptions = {
+  suppressHandledErrorToast?: boolean;
+};
 
 @Injectable({ providedIn: 'root' })
 export class SeatService {
@@ -38,8 +43,13 @@ export class SeatService {
     return this.http.put<Seat>(`${this.base}/${seatId}/hold`, { holdReference });
   }
 
-  releaseSeat(seatId: string, holdReference: string): Observable<Seat> {
-    return this.http.put<Seat>(`${this.base}/${seatId}/release`, { holdReference });
+  releaseSeat(seatId: string, holdReference: string, options?: ReleaseSeatOptions): Observable<Seat> {
+    const context = new HttpContext().set(
+      SUPPRESS_GLOBAL_ERROR_TOAST,
+      Boolean(options?.suppressHandledErrorToast)
+    );
+
+    return this.http.put<Seat>(`${this.base}/${seatId}/release`, { holdReference }, { context });
   }
 
   confirmSeat(seatId: string, holdReference: string): Observable<Seat> {

@@ -30,7 +30,8 @@
         <div class="booking-summary">
           <div class="booking-summary-row"><span class="label">PNR</span><span class="value text-cyan">{{ booking.pnrCode }}</span></div>
           <div class="booking-summary-row"><span class="label">Flight</span><span class="value">#{{ booking.flightId }}</span></div>
-          <div class="booking-summary-row"><span class="label">Seat</span><span class="value">#{{ booking.seatId }}</span></div>
+          <div class="booking-summary-row"><span class="label">Seat</span><span class="value">{{ getSeatLabel() }}</span></div>
+          <div class="booking-summary-row"><span class="label">Passengers</span><span class="value">{{ booking.totalPassengers }}</span></div>
           <div class="booking-summary-row"><span class="label">Status</span><span class="value"><span class="badge badge-success">{{ booking.status }}</span></span></div>
           <div class="booking-summary-row"><span class="label">Trip Type</span><span class="value">{{ booking.tripType }}</span></div>
           <div class="booking-summary-row"><span class="label">Total Fare</span><span class="value">&#8377;{{ booking.totalFare | number }}</span></div>

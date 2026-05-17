@@ -8,7 +8,7 @@ import { catchError } from 'rxjs/operators';
 import { FlightService } from '../../../core/services/flight.service';
 import { PassengerService } from '../../../core/services/passenger.service';
 import { SeatService } from '../../../core/services/seat.service';
-import { Booking, Flight, Passenger, Seat } from '../../../models';
+import { Booking, BookingRequest, FareSummaryResponse, Flight, Passenger, Seat } from '../../../models';
 
 @Component({
   selector: 'app-my-bookings',
@@ -39,9 +39,9 @@ export class MyBookingsComponent implements OnInit {
   loadBookings(): void {
     this.bookingService.getBookingsByUser(this.auth.getUserId()).subscribe({
       next: data => {
-        this.bookings = data;
+        this.bookings = data.filter(booking => this.shouldDisplayBooking(booking));
         this.loading = false;
-        this.loadBookingDetails(data);
+        this.loadBookingDetails(this.bookings);
       },
       error: () => { this.loading = false; }
     });
@@ -81,23 +81,34 @@ export class MyBookingsComponent implements OnInit {
   downloadTicket(booking: Booking): void {
     this.downloadingTicketId = booking.bookingId;
 
+    const farePayload = this.buildFarePayload(booking);
     forkJoin({
       flight: this.flightService.getFlightById(booking.flightId).pipe(catchError(() => of(null))),
       seats: this.seatService.getSeatMap(booking.flightId).pipe(catchError(() => of([] as Seat[]))),
       passengers: this.passengerService.getPassengersByBooking(booking.bookingId).pipe(catchError(() => of([] as Passenger[]))),
+      fareSummary: farePayload
+        ? this.bookingService.calculateFare(farePayload).pipe(catchError(() => of(null as FareSummaryResponse | null)))
+        : of(null as FareSummaryResponse | null),
     }).subscribe({
-      next: ({ flight, seats, passengers }) => {
-        const seat = seats.find(item => item.seatId === booking.seatId) || null;
+      next: ({ flight, seats, passengers, fareSummary }) => {
+        const seatIds = this.getSeatIds(booking);
+        const bookingSeats = seats.filter(item => seatIds.includes(item.seatId));
         const passenger = passengers[0] || null;
 
-        if (!flight || !seat || !passenger) {
+        if (!flight || bookingSeats.length === 0 || !passenger) {
           this.toast.warning('Ticket details are not available for this booking yet.');
           this.downloadingTicketId = null;
           return;
         }
 
-        const blob = this.buildTicketPdf(booking, flight, seat, passenger);
-        const url = URL.createObjectURL(blob);
+        const pdf = this.buildTicketPdf(
+          booking,
+          flight,
+          bookingSeats,
+          passengers,
+          this.normalizeFareSummary(fareSummary)
+        );
+        const url = URL.createObjectURL(pdf);
         const anchor = document.createElement('a');
         anchor.href = url;
         anchor.download = `SkyBooker-${booking.pnrCode}.pdf`;
@@ -118,7 +129,7 @@ export class MyBookingsComponent implements OnInit {
   }
 
   getSeatLabel(booking: Booking): string {
-    return this.seatLabels[booking.bookingId] || booking.seatId;
+    return this.seatLabels[booking.bookingId] || this.getSeatIds(booking).join(', ');
   }
 
   private loadBookingDetails(bookings: Booking[]): void {
@@ -150,10 +161,11 @@ export class MyBookingsComponent implements OnInit {
         bookings.forEach(booking => {
           const flight = flights[booking.flightId] as Flight | null;
           const seatMap = (seatMaps[booking.flightId] as Seat[]) || [];
-          const seat = seatMap.find(item => item.seatId === booking.seatId) || null;
+          const seats = seatMap.filter(item => this.getSeatIds(booking).includes(item.seatId));
 
           nextFlightLabels[booking.bookingId] = flight?.flightNumber || booking.flightId;
-          nextSeatLabels[booking.bookingId] = seat?.seatNumber || booking.seatId;
+          nextSeatLabels[booking.bookingId] = seats.map(seat => seat.seatNumber).filter(Boolean).join(', ')
+            || this.getSeatIds(booking).join(', ');
         });
 
         this.flightLabels = nextFlightLabels;
@@ -162,126 +174,229 @@ export class MyBookingsComponent implements OnInit {
     });
   }
 
-  private buildTicketPdf(booking: Booking, flight: Flight, seat: Seat, passenger: Passenger): Blob {
-    const pageWidth = 842;
-    const pageHeight = 595;
-    const ticketX = 42;
-    const ticketY = 118;
-    const ticketWidth = 758;
-    const ticketHeight = 322;
-    const stubX = 606;
-    const headerY = 366;
-    const headerHeight = 74;
-    const labelSize = 11;
-    const valueSize = 16;
-
-    const formatDate = (value?: string, options?: Intl.DateTimeFormatOptions): string => {
-      if (!value) return '--';
-      return new Intl.DateTimeFormat('en-IN', options || { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
+  getStatusClass(status: string): string {
+    const m: Record<string, string> = {
+      PENDING: 'badge-warning', CONFIRMED: 'badge-success',
+      CANCELLED: 'badge-danger', COMPLETED: 'badge-info'
     };
+    return m[status] || 'badge-default';
+  }
 
-    const formatTime = (value?: string): string => {
-      if (!value) return '--';
-      return new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value));
+  private shouldDisplayBooking(booking: Booking): boolean {
+    return booking.status === 'CONFIRMED' || booking.status === 'CANCELLED';
+  }
+
+  private getSeatIds(booking: Booking): string[] {
+    if (booking.seatIds?.length) return booking.seatIds;
+    const fallbackSeatId = String((booking as Booking & { seatId?: string }).seatId || '').trim();
+    return fallbackSeatId ? [fallbackSeatId] : [];
+  }
+
+  private buildFarePayload(booking: Booking): BookingRequest | null {
+    const seatIds = this.getSeatIds(booking);
+    if (!booking.flightId || !seatIds.length) return null;
+
+    return {
+      userId: booking.userId || this.auth.getUserId(),
+      flightId: booking.flightId,
+      seatIds,
+      tripType: booking.tripType,
+      mealPreference: booking.mealPreference,
+      luggageKg: booking.luggageKg,
+      contactEmail: booking.contactEmail,
+      contactPhone: booking.contactPhone,
     };
+  }
 
-    const sanitize = (value: string): string =>
-      value
-        .normalize('NFKD')
-        .replace(/[^\x20-\x7E]/g, ' ')
-        .replace(/\\/g, '\\\\')
-        .replace(/\(/g, '\\(')
-        .replace(/\)/g, '\\)');
+  private normalizeFareSummary(fareSummary: Partial<FareSummaryResponse> | null): FareSummaryResponse | null {
+    if (!fareSummary) return null;
 
-    const drawText = (
+    return {
+      seatIds: fareSummary.seatIds || [],
+      baseFare: Number(fareSummary.baseFare || 0),
+      taxes: Number(fareSummary.taxes || 0),
+      baggageCharge: Number(fareSummary.baggageCharge || 0),
+      mealCharge: Number(fareSummary.mealCharge || 0),
+      totalFare: Number(fareSummary.totalFare || 0),
+      totalPassengers: Number(fareSummary.totalPassengers || 0),
+    };
+  }
+
+  private buildTicketPdf(
+    booking: Booking,
+    flight: Flight,
+    seats: Seat[],
+    passengers: Passenger[],
+    fareSummary: FareSummaryResponse | null
+  ): Blob {
+    const pageWidth = 595;
+    const pageHeight = 842;
+    const margin = 36;
+    const contentWidth = pageWidth - margin * 2;
+    const routeCode = `${flight.originAirportCode || 'ORG'}-${flight.destinationAirportCode || 'DST'}`;
+    const checkedBaggageLabel = `${booking.luggageKg || 0} KG`;
+    const cabinBaggageLabel = '7 KG';
+    const mealLabel = String(booking.mealPreference || 'STANDARD').replace(/_/g, ' ');
+    const bookingDateLabel = this.formatTicketDate(booking.bookedAt, {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const bookingTimeLabel = this.formatTicketTime(booking.bookedAt);
+    const flightDateLabel = this.formatTicketDate(flight.departureTime, {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const departureTimeLabel = this.formatTicketTime(flight.departureTime);
+    const arrivalTimeLabel = this.formatTicketTime(flight.arrivalTime);
+    const durationLabel = this.getDurationLabel(flight.departureTime, flight.arrivalTime);
+
+    let y = pageHeight - margin;
+    const commands: string[] = [
+      'q 0.93 0.96 1 rg 0 0 595 842 re f Q',
+      'q 1 1 1 rg 0.83 0.90 0.95 RG 1 w 24 24 547 794 re B Q',
+    ];
+
+    const addText = (
       x: number,
-      y: number,
+      baselineY: number,
       text: string,
       size = 12,
       font = 'F1',
-      color = '0.07 0.15 0.25'
-    ): string => `BT /${font} ${size} Tf ${color} rg 1 0 0 1 ${x} ${y} Tm (${sanitize(text)}) Tj ET`;
+      color = '0.09 0.20 0.31'
+    ): void => {
+      commands.push(`BT /${font} ${size} Tf ${color} rg 1 0 0 1 ${x} ${baselineY} Tm (${this.escapePdfText(text)}) Tj ET`);
+    };
 
-    const drawCenteredText = (
+    const addCenteredText = (
       x: number,
-      y: number,
+      baselineY: number,
       width: number,
       text: string,
       size = 12,
       font = 'F1',
-      color = '1 1 1'
-    ): string => {
-      const approxWidth = text.length * size * 0.48;
-      const startX = x + (width - approxWidth) / 2;
-      return drawText(startX, y, text, size, font, color);
+      color = '0.09 0.20 0.31'
+    ): void => {
+      const textWidth = text.length * size * 0.46;
+      addText(x + Math.max(0, (width - textWidth) / 2), baselineY, text, size, font, color);
     };
 
-    const drawBarcode = (x: number, y: number, height: number, width: number): string => {
-      const bars = [2, 1, 3, 1, 2, 4, 1, 3, 2, 1, 4, 1, 2, 3, 1, 2, 4, 1, 3, 2, 1, 2, 3, 4, 1, 3, 1, 2, 4];
-      let cursor = x;
-      const scale = width / bars.reduce((sum, bar) => sum + bar + 1, 0);
-      const commands = ['q 0.06 0.09 0.16 rg'];
-
-      bars.forEach(bar => {
-        const barWidth = Math.max(1, bar * scale);
-        commands.push(`${cursor.toFixed(2)} ${y.toFixed(2)} ${barWidth.toFixed(2)} ${height.toFixed(2)} re f`);
-        cursor += barWidth + scale;
-      });
-
-      commands.push('Q');
-      return commands.join('\n');
+    const addLine = (x1: number, y1: number, x2: number, y2: number, width = 1, color = '0.83 0.90 0.95'): void => {
+      commands.push(`q ${color} RG ${width} w ${x1} ${y1} m ${x2} ${y2} l S Q`);
     };
 
-    const departureDate = formatDate(flight.departureTime, { day: '2-digit', month: 'short' });
-    const boardingTime = formatTime(flight.departureTime);
-    const passengerName = `${passenger.firstName} ${passenger.lastName}`;
-    const stubName = `${passenger.firstName} / ${passenger.lastName}`;
+    const addRect = (x: number, rectY: number, width: number, height: number, fill: string, stroke?: string): void => {
+      const strokePart = stroke ? `${stroke} RG ` : '';
+      const operator = stroke ? 'B' : 'f';
+      commands.push(`q ${fill} rg ${strokePart}${x} ${rectY} ${width} ${height} re ${operator} Q`);
+    };
 
-    const commands = [
-      'q 0.95 0.97 1 rg 0 0 842 595 re f Q',
-      'q 1 1 1 rg 0.88 0.92 0.97 RG 1.1 w 42 118 758 322 re B Q',
-      'q 0.19 0.57 0.94 rg 42 366 758 74 re f Q',
-      'q [3 8] 0 d 0.84 0.88 0.94 RG 606 118 m 606 440 l S Q',
-      drawText(224, 401, 'X', 26, 'F2', '1 1 1'),
-      drawText(562, 401, 'X', 26, 'F2', '1 1 1'),
-      drawCenteredText(250, 401, 280, 'SKYBOOKER AIRLINES', 18, 'F2', '1 1 1'),
-      drawCenteredText(616, 401, 154, 'BOARDING PASS', 17, 'F2', '1 1 1'),
-      drawBarcode(62, 150, 170, 44),
-      drawText(122, 336, 'PASSENGER', labelSize, 'F2', '0.34 0.47 0.65'),
-      drawText(244, 336, passengerName, valueSize, 'F2'),
-      drawText(122, 290, 'FROM', labelSize, 'F2', '0.34 0.47 0.65'),
-      drawText(244, 290, flight.originAirportCode, valueSize, 'F2'),
-      drawText(122, 244, 'DATE', labelSize, 'F2', '0.34 0.47 0.65'),
-      drawText(244, 244, departureDate, valueSize, 'F2'),
-      drawText(448, 336, 'FLIGHT', labelSize, 'F2', '0.34 0.47 0.65'),
-      drawText(536, 336, flight.flightNumber, valueSize, 'F2'),
-      drawText(448, 290, 'TO', labelSize, 'F2', '0.34 0.47 0.65'),
-      drawText(536, 290, flight.destinationAirportCode, valueSize, 'F2'),
-      drawText(448, 244, 'BOARDING', labelSize, 'F2', '0.34 0.47 0.65'),
-      drawText(448, 220, 'TIME', labelSize, 'F2', '0.34 0.47 0.65'),
-      drawText(536, 232, boardingTime, valueSize, 'F2'),
-      drawText(122, 156, 'SEAT', 12, 'F2', '0.34 0.47 0.65'),
-      drawText(122, 122, seat.seatNumber, 28, 'F2'),
-      drawText(362, 156, 'PNR', 12, 'F2', '0.34 0.47 0.65'),
-      drawText(362, 122, booking.pnrCode, 28, 'F2'),
-      drawText(530, 156, 'FARE', 12, 'F2', '0.34 0.47 0.65'),
-      drawText(530, 122, `INR ${booking.totalFare.toFixed(2)}`, 26, 'F2'),
-      drawText(122, 70, 'PLEASE ARRIVE AT THE GATE AT LEAST 20 MINUTES BEFORE DEPARTURE.', 10, 'F2', '0.27 0.39 0.56'),
-      drawText(628, 356, 'BOARDING PASS', 16, 'F2', '0.22 0.34 0.5'),
-      drawText(628, 304, 'NAME', 10, 'F2', '0.34 0.47 0.65'),
-      drawText(708, 304, stubName, 13, 'F2'),
-      drawText(628, 266, 'FROM', 10, 'F2', '0.34 0.47 0.65'),
-      drawText(708, 266, flight.originAirportCode, 13, 'F2'),
-      drawText(628, 228, 'TO', 10, 'F2', '0.34 0.47 0.65'),
-      drawText(708, 228, flight.destinationAirportCode, 13, 'F2'),
-      drawText(628, 190, 'FLIGHT', 10, 'F2', '0.34 0.47 0.65'),
-      drawText(708, 190, flight.flightNumber, 13, 'F2'),
-      drawText(628, 152, 'DATE', 10, 'F2', '0.34 0.47 0.65'),
-      drawText(708, 152, departureDate, 13, 'F2'),
-      drawText(628, 114, 'SEAT', 10, 'F2', '0.34 0.47 0.65'),
-      drawText(708, 114, seat.seatNumber, 13, 'F2'),
-      drawBarcode(628, 36, 52, 145),
+    y -= 8;
+    addText(margin, y, 'SkyBooker', 24, 'F2', '0.09 0.45 0.83');
+    addText(margin, y - 18, 'E-Ticket Itinerary', 11, 'F1', '0.36 0.45 0.55');
+    addRect(pageWidth - 195, y - 8, 159, 28, '0.93 0.98 0.94', '0.74 0.89 0.76');
+    addText(pageWidth - 182, y + 2, 'Booking Confirmed', 15, 'F2', '0.19 0.56 0.25');
+    addText(pageWidth - 195, y - 24, `Booking Date: ${bookingDateLabel}`, 10, 'F1', '0.42 0.51 0.62');
+    addText(pageWidth - 86, y - 24, `Time: ${bookingTimeLabel}`, 10, 'F1', '0.42 0.51 0.62');
+    y -= 44;
+    addLine(margin, y, pageWidth - margin, y);
+
+    y -= 28;
+    addText(margin, y, `Dear Passenger, your flight booking for ${routeCode} is confirmed.`, 12, 'F1');
+    y -= 18;
+    addText(margin, y, `Flight ${flight.flightNumber || booking.flightId}`, 11, 'F2', '0.19 0.29 0.38');
+    addText(margin + 130, y, `Booking ID ${booking.bookingId}`, 11, 'F1', '0.45 0.53 0.63');
+
+    y -= 28;
+    addRect(margin, y - 76, contentWidth, 76, '0.98 0.99 1', '0.86 0.91 0.95');
+    addText(margin + 22, y - 18, flight.originAirportCode || 'ORG', 28, 'F2', '0.08 0.50 0.86');
+    addText(margin + 22, y - 40, departureTimeLabel, 16, 'F2');
+    addText(margin + 22, y - 58, flightDateLabel, 10, 'F1', '0.36 0.45 0.55');
+    addCenteredText(margin + 175, y - 22, 140, durationLabel, 11, 'F1', '0.31 0.41 0.52');
+    addLine(margin + 192, y - 40, margin + 302, y - 40, 1, '0.62 0.77 0.87');
+    addText(margin + 308, y - 44, '>', 14, 'F2', '0.43 0.53 0.64');
+    addText(pageWidth - margin - 95, y - 18, flight.destinationAirportCode || 'DST', 28, 'F2', '0.08 0.50 0.86');
+    addText(pageWidth - margin - 78, y - 40, arrivalTimeLabel, 16, 'F2');
+    addText(pageWidth - margin - 95, y - 58, flightDateLabel, 10, 'F1', '0.36 0.45 0.55');
+
+    y -= 98;
+    addRect(margin, y - 22, contentWidth, 22, '0.87 0.95 1', '0.77 0.88 0.96');
+    addText(margin + 10, y - 15, `Passengers - ${passengers.length} Adult${passengers.length > 1 ? 's' : ''}`, 14, 'F2', '0.09 0.45 0.83');
+    y -= 22;
+
+    const headers = [
+      { label: 'Passenger', width: 110 },
+      { label: 'Airline', width: 72 },
+      { label: 'Status', width: 62 },
+      { label: 'Sector', width: 78 },
+      { label: 'Airline PNR', width: 90 },
+      { label: 'Ticket Number', width: 90 },
+      { label: 'Seat No', width: 57 },
     ];
+
+    let x = margin;
+    headers.forEach(header => {
+      addRect(x, y - 20, header.width, 20, '0.93 0.97 1', '0.85 0.91 0.95');
+      addText(x + 4, y - 14, header.label, 9, 'F2', '0.16 0.30 0.45');
+      x += header.width;
+    });
+    y -= 20;
+
+    passengers.forEach((passenger, index) => {
+      const row = [
+        `${passenger.firstName} ${passenger.lastName}`,
+        flight.flightNumber || booking.flightId,
+        'Confirmed',
+        routeCode,
+        booking.pnrCode,
+        passenger.ticketNumber || '--',
+        this.getSeatNumberForPassenger(passenger, seats, index),
+      ];
+
+      let colX = margin;
+      row.forEach((cell, cellIndex) => {
+        const cellWidth = headers[cellIndex].width;
+        addRect(colX, y - 20, cellWidth, 20, '1 1 1', '0.85 0.91 0.95');
+        addText(colX + 4, y - 14, cell, 8.5, 'F1', '0.15 0.25 0.36');
+        colX += cellWidth;
+      });
+      y -= 20;
+    });
+
+    y -= 26;
+    addRect(margin, y - 22, contentWidth, 22, '0.87 0.95 1', '0.77 0.88 0.96');
+    addText(margin + 10, y - 15, 'Fare Details', 14, 'F2', '0.09 0.45 0.83');
+    addText(pageWidth - margin - 84, y - 15, 'Amount (INR)', 12, 'F2', '0.09 0.45 0.83');
+    y -= 28;
+
+    const fareRows = [
+      ['Total Basic Fare', this.formatCurrency(booking.baseFare)],
+      ['Taxes & Fees', this.formatCurrency(booking.taxes)],
+      ['Baggage Charges', fareSummary ? this.formatCurrency(fareSummary.baggageCharge) : '--'],
+      ['Meal Charges', fareSummary ? this.formatCurrency(fareSummary.mealCharge) : '--'],
+      ['Meal Preference', mealLabel],
+      ['Total Amount', this.formatCurrency(booking.totalFare)],
+    ];
+
+    fareRows.forEach(([label, value], index) => {
+      const isTotal = index === fareRows.length - 1;
+      addLine(margin, y - 4, pageWidth - margin, y - 4, 0.8, '0.86 0.91 0.95');
+      addText(margin + 8, y - 18, label, isTotal ? 12 : 10.5, isTotal ? 'F2' : 'F1', isTotal ? '0.09 0.45 0.83' : '0.19 0.29 0.38');
+      addText(pageWidth - margin - 90, y - 18, value, isTotal ? 12 : 10.5, isTotal ? 'F2' : 'F1', isTotal ? '0.09 0.45 0.83' : '0.19 0.29 0.38');
+      y -= 24;
+    });
+
+    y -= 12;
+    addLine(margin, y, pageWidth - margin, y);
+    y -= 18;
+    const footerLines = this.wrapText(
+      `Please carry a valid government ID at the airport and report at least 2 hours before departure for a smooth boarding experience. Checked baggage allowance is ${checkedBaggageLabel} and cabin baggage allowance is ${cabinBaggageLabel}. Excess baggage may attract additional airline charges, and cabin bags should keep valuables, medicines, and travel documents easily accessible.`,
+      100
+    );
+    footerLines.forEach((line, index) => addText(margin, y - (index * 14), line, 9, 'F1', '0.36 0.45 0.55'));
 
     const stream = commands.join('\n');
     const objects = [
@@ -326,11 +441,67 @@ ${xrefOffset}
     return new Blob([pdf], { type: 'application/pdf' });
   }
 
-  getStatusClass(status: string): string {
-    const m: Record<string, string> = {
-      PENDING: 'badge-warning', CONFIRMED: 'badge-success',
-      CANCELLED: 'badge-danger', COMPLETED: 'badge-info'
-    };
-    return m[status] || 'badge-default';
+  private getSeatNumberForPassenger(passenger: Passenger, seats: Seat[], index: number): string {
+    const matchingSeat = seats.find(seat => seat.seatId === passenger.seatId);
+    return matchingSeat?.seatNumber || seats[index]?.seatNumber || passenger.seatId || '--';
+  }
+
+  private formatTicketDate(value?: string, options?: Intl.DateTimeFormatOptions): string {
+    if (!value) return '--';
+    return new Intl.DateTimeFormat('en-IN', options || {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(new Date(value));
+  }
+
+  private formatTicketTime(value?: string): string {
+    if (!value) return '--';
+    return new Intl.DateTimeFormat('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(new Date(value));
+  }
+
+  private getDurationLabel(departureTime?: string, arrivalTime?: string): string {
+    if (!departureTime || !arrivalTime) return '--';
+    const durationMinutes = Math.max(0, Math.round((new Date(arrivalTime).getTime() - new Date(departureTime).getTime()) / 60000));
+    return `${String(Math.floor(durationMinutes / 60)).padStart(2, '0')}h ${String(durationMinutes % 60).padStart(2, '0')}m`;
+  }
+
+  private formatCurrency(amount: number | undefined): string {
+    return `INR ${Number(amount || 0).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+
+  private wrapText(value: string, maxLength: number): string[] {
+    const words = String(value || '').split(/\s+/).filter(Boolean);
+    const lines: string[] = [];
+    let current = '';
+
+    words.forEach(word => {
+      const candidate = current ? `${current} ${word}` : word;
+      if (candidate.length > maxLength && current) {
+        lines.push(current);
+        current = word;
+        return;
+      }
+      current = candidate;
+    });
+
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  private escapePdfText(value: string): string {
+    return String(value || '')
+      .normalize('NFKD')
+      .replace(/[^\x20-\x7E]/g, ' ')
+      .replace(/\\/g, '\\\\')
+      .replace(/\(/g, '\\(')
+      .replace(/\)/g, '\\)');
   }
 }

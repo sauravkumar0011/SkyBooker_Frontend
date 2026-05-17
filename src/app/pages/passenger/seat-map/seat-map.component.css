@@ -14,6 +14,39 @@
   max-width: 700px;
 }
 
+.selection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.selected-seat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+}
+
+.selected-seat-chip {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(16, 40, 68, 0.08);
+  background: linear-gradient(180deg, rgba(232, 247, 255, 0.96), rgba(245, 250, 255, 0.96));
+}
+
+.selected-seat-code {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: #0d6ea8;
+}
+
+.selected-seat-meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #607389;
+}
+
 .seat-legend-card {
   width: 100%;
   max-width: 700px;
@@ -252,4 +285,29 @@
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .selection-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 400px) {
+  .seat-shell {
+    width: 28px;
+    height: 28px;
+    font-size: 9px;
+  }
+  .cabin-row {
+    grid-template-columns: 20px 1fr 4px 1fr 20px;
+    gap: 2px;
+  }
+  .cabin-side {
+    gap: 2px;
+  }
+  .cabin-shell {
+    padding: 16px 8px;
+  }
 }

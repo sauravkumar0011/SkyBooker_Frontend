@@ -85,6 +85,32 @@ describe('PassengerDetailsComponent', () => {
     expect(component.loading).toBeFalse();
   });
 
+  it('should allow submitting passenger details without a passport number', () => {
+    queryParams$.next({ bookingId: 'booking-1', seatId: 'seat-1' });
+    passengerService.createPassenger.and.returnValue(of({ ticketNumber: 'TKT-2' } as any));
+    component.form.setValue({
+      firstName: 'Sky',
+      lastName: 'Traveler',
+      dateOfBirth: '1990-01-01',
+      gender: 'MALE',
+      passportNumber: '   ',
+      nationality: 'Indian',
+    });
+
+    component.onSubmit();
+
+    expect(passengerService.createPassenger).toHaveBeenCalledWith({
+      bookingId: 'booking-1',
+      seatId: 'seat-1',
+      firstName: 'Sky',
+      lastName: 'Traveler',
+      dateOfBirth: '1990-01-01',
+      gender: 'MALE',
+      passportNumber: null,
+      nationality: 'Indian',
+    });
+  });
+
   it('should reset loading when passenger creation fails', () => {
     queryParams$.next({ bookingId: 'booking-1', seatId: 'seat-1' });
     passengerService.createPassenger.and.returnValue(throwError(() => new Error('create failed')));

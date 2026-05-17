@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../../environments/environment';
+import { SUPPRESS_GLOBAL_ERROR_TOAST } from '../interceptors/http-context-tokens';
 import { BookingService } from './booking.service';
 
 describe('BookingService', () => {
@@ -89,6 +90,7 @@ describe('BookingService', () => {
     let req = httpMock.expectOne(`${baseUrl}/booking-1/confirm`);
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual({});
+    expect(req.request.context.get(SUPPRESS_GLOBAL_ERROR_TOAST)).toBeFalse();
     req.flush({ bookingId: 'booking-1', status: 'CONFIRMED' });
 
     service.cancelBooking('booking-1').subscribe();
@@ -96,6 +98,15 @@ describe('BookingService', () => {
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual({});
     req.flush({ bookingId: 'booking-1', status: 'CANCELLED' });
+  });
+
+  it('should allow confirm booking requests to suppress global error toasts', () => {
+    service.confirmBooking('booking-1', { suppressHandledErrorToast: true }).subscribe();
+
+    const req = httpMock.expectOne(`${baseUrl}/booking-1/confirm`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.context.get(SUPPRESS_GLOBAL_ERROR_TOAST)).toBeTrue();
+    req.flush({ bookingId: 'booking-1', status: 'CONFIRMED' });
   });
 
   it('should propagate backend errors to subscribers', () => {

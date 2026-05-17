@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
@@ -9,6 +9,11 @@ import {
   PaymentProcessRequest,
   RevenueReport,
 } from '../../models';
+import { SUPPRESS_GLOBAL_ERROR_TOAST } from '../interceptors/http-context-tokens';
+
+type ProcessPaymentOptions = {
+  suppressHandledErrorToast?: boolean;
+};
 
 @Injectable({ providedIn: 'root' })
 export class PaymentService {
@@ -20,12 +25,17 @@ export class PaymentService {
     return this.http.post<PaymentInitiateResponse>(`${this.base}/initiate`, data);
   }
 
-  processPayment(data: PaymentProcessRequest): Observable<Payment> {
-    return this.http.post<Payment>(`${this.base}/process`, data);
+  processPayment(data: PaymentProcessRequest, options?: ProcessPaymentOptions): Observable<Payment> {
+    const context = new HttpContext().set(
+      SUPPRESS_GLOBAL_ERROR_TOAST,
+      Boolean(options?.suppressHandledErrorToast)
+    );
+
+    return this.http.post<Payment>(`${this.base}/process`, data, { context });
   }
 
-  getPaymentStatus(paymentId: string): Observable<Payment> {
-    return this.http.get<Payment>(`${this.base}/${paymentId}`);
+  getPaymentStatus(paymentId: string): Observable<string> {
+    return this.http.get(`${this.base}/${paymentId}/payment-status`, { responseType: 'text' });
   }
 
   getPaymentByBooking(bookingId: string): Observable<Payment> {

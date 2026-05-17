@@ -237,15 +237,15 @@
   }
 
   .hero-title {
-    font-size: clamp(38px, 14vw, 58px);
+    font-size: clamp(32px, 14vw, 58px);
   }
 
   .hero-sub {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .search-card {
-    padding: 20px;
+    padding: 16px;
   }
 
   .search-bar {
@@ -255,5 +255,31 @@
   .cta-inner {
     flex-direction: column;
     text-align: center;
+  }
+}
+
+@media (max-width: 400px) {
+  .hero-badge {
+    font-size: 11px;
+    padding: 6px 12px;
+    margin-bottom: 16px;
+  }
+
+  .hero-quick {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .quick-sep {
+    display: none;
+  }
+
+  .feature-card {
+    padding: 24px 16px;
+  }
+
+  .cta-strip {
+    padding: 40px 0;
   }
 }

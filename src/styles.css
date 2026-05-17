@@ -63,6 +63,7 @@ body {
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -718,6 +719,16 @@ tr:hover td { background: rgba(15,143,194,0.04); }
   .brand-text,
   .ticket-band-title { font-size: 14px; }
   .focus-value { font-size: 24px; }
+  .stat-card { flex-direction: column; text-align: center; gap: 12px; }
+}
+
+@media (max-width: 400px) {
+  .container { padding: 0 12px; }
+  .card { padding: 16px; }
+  .text-4xl { font-size: 28px; }
+  .text-3xl { font-size: 24px; }
+  .btn { padding: 8px 16px; font-size: 13px; }
+  .btn-lg { padding: 10px 18px; font-size: 13px; }
 }
 
 @media (max-width: 960px) {
@@ -743,3 +754,16 @@ tr:hover td { background: rgba(15,143,194,0.04); }
 .overflow-hidden { overflow: hidden; }
 .rounded { border-radius: var(--radius-sm); }
 .rounded-full { border-radius: 99px; }
+
+.ticket-shell{max-width:1100px;margin:0 auto}.ticket-header{margin-bottom:20px;text-align:left}.ticket-document{padding:24px;border:1px solid #d4e6f3;border-radius:24px;background:linear-gradient(180deg,#fff,#f8fbff);box-shadow:0 20px 46px rgba(17,56,93,.1);color:#18324f}
+.ticket-topbar{display:flex;justify-content:space-between;gap:20px;padding-bottom:18px;border-bottom:1px solid #d8e9f6}.ticket-brand-block{display:flex;align-items:center;gap:14px}.ticket-brand-mark,.journey-airline-logo{border-radius:12px;background:linear-gradient(145deg,#21c6e6,#2d7de0)}.ticket-brand-mark{width:46px;height:46px}.ticket-brand-name{font-family:var(--font-display);font-size:30px;font-weight:800;line-height:1;color:#1777d3}.ticket-brand-subtitle{margin-top:4px;font-size:13px;color:#5c738d}
+.ticket-status-block{display:flex;flex-direction:column;align-items:flex-end;gap:10px}.ticket-status-badge{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:#edf9ee;border:1px solid #bde4c0;color:#2f8f40;font-family:var(--font-display);font-size:20px;font-weight:700}.status-check{display:inline-grid;place-items:center;width:24px;height:24px;border:2px solid currentColor;border-radius:50%;font-size:14px}.ticket-status-meta{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;font-size:13px;color:#6c839d}
+.ticket-greeting{padding:18px 0 6px;line-height:1.65}.ticket-greeting p{margin:0 0 10px}.journey-route-accent{color:#1674d3}.journey-heading{display:flex;flex-direction:column;gap:4px;margin-top:6px}.journey-card{display:block;padding:20px 0 24px;border-bottom:1px dashed #cfe0ec}.journey-airline{display:flex;align-items:center;gap:14px}.journey-airline-logo{width:42px;height:42px}.journey-airline-name{font-weight:700;color:#304961}.journey-airline-flight{font-size:14px;font-weight:700;color:#304961}.journey-airline-booking{font-size:13px;color:#7388a0}
+.journey-segment{display:grid;grid-template-columns:minmax(0,1fr) 170px minmax(0,1fr);gap:18px;align-items:center}.journey-point:last-child{text-align:right}.journey-city{font-family:var(--font-display);font-size:34px;font-weight:800;color:#1480dc}.journey-time{margin-top:4px;font-size:22px;font-weight:700;color:#203a57}.journey-date{margin-top:4px;font-size:14px;color:#5c738d}.journey-line{text-align:center}.journey-duration{margin-bottom:10px;font-size:13px;color:#4f6884}.journey-track{display:flex;align-items:center;justify-content:center;gap:8px}.journey-dot{width:8px;height:8px;border-radius:50%;background:#1da9d9}.journey-bar{width:90px;height:1px;background:#9fc5dd}.journey-arrow{font-size:18px;color:#6d87a2}
+.ticket-section{margin-top:22px}.ticket-section-heading{display:flex;justify-content:space-between;gap:16px;margin-bottom:10px;padding:10px 14px;background:#dff2ff;border:1px solid #c4e1f4;color:#1777d3;font-family:var(--font-display);font-size:22px;font-weight:700}.ticket-table-wrap{overflow-x:auto}.ticket-table{width:100%;border-collapse:collapse;background:#fff}.ticket-table th,.ticket-table td{padding:10px 12px;border:1px solid #d8e9f4;text-align:left;font-size:13px;color:#26415d;vertical-align:top}.ticket-table thead th{background:#edf7ff;color:#294d73;font-weight:700}.compact-table th,.compact-table td{text-align:center}
+.ticket-bottom-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);gap:20px}.fare-list{padding:16px 18px;border:1px solid #d8e9f4;background:#fff}.fare-row{display:flex;justify-content:space-between;gap:16px;padding:10px 0;font-size:14px;color:#304961}.fare-row:not(:last-child){border-bottom:1px dashed #d5e4ef}.fare-row.total{font-family:var(--font-display);font-size:18px;font-weight:700;color:#1676d1}.ticket-footer-note{margin-top:24px;padding-top:16px;border-top:1px solid #d8e9f6;font-size:13px;line-height:1.6;color:#5d748e}.ticket-actions{display:flex;gap:12px;margin-top:22px;flex-wrap:wrap}.ticket-actions .btn{flex:1}
+
+@media (max-width:960px){.ticket-bottom-grid,.journey-segment{grid-template-columns:1fr}.journey-point:last-child,.journey-line{text-align:left}.journey-track{justify-content:flex-start}}
+@media (max-width:768px){.ticket-document{padding:20px;border-radius:20px}.ticket-topbar{flex-direction:column}.ticket-topbar,.ticket-status-block{align-items:flex-start}.ticket-status-meta{justify-content:flex-start}.journey-city{font-size:28px}.journey-time{font-size:19px}}
+@media (max-width:640px){.fare-row,.ticket-section-heading{flex-direction:column;align-items:flex-start}.ticket-brand-name{font-size:26px}.ticket-section-heading{font-size:18px}.ticket-actions{flex-direction:column}}
+@media print{.page-wrapper,.container,.section{background:#fff!important;padding:0!important;margin:0!important}.print-hide,.ticket-actions,app-loading-spinner,app-navbar,app-footer{display:none!important}.ticket-shell{max-width:none}.ticket-document{padding:18px;margin:0;border-radius:0;box-shadow:none}.ticket-section,.journey-card,.ticket-bottom-grid{break-inside:avoid}}

@@ -126,13 +126,14 @@ export interface Booking {
   bookingId: string;
   userId: string;
   flightId: string;
-  seatId: string;
+  seatIds: string[];
   pnrCode: string;
   tripType: TripType;
   baseFare: number;
   taxes: number;
   totalFare: number;
   status: BookingStatus;
+  totalPassengers: number;
   mealPreference: string;
   luggageKg: number;
   contactEmail: string;
@@ -146,23 +147,22 @@ export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
 export interface BookingRequest {
   userId: string;
   flightId: string;
-  seatId: string;
+  seatIds: string[];
   tripType: TripType;
-  baseFare: number;
-  taxes: number;
   mealPreference: string;
   luggageKg: number;
   contactEmail: string;
   contactPhone: string;
-  holdReference?: string;
 }
 
 export interface FareSummaryResponse {
+  seatIds?: string[];
   baseFare: number;
   taxes: number;
   baggageCharge: number;
   mealCharge: number;
   totalFare: number;
+  totalPassengers?: number;
 }
 
 // â”€â”€â”€ Passenger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -174,20 +174,28 @@ export interface Passenger {
   lastName: string;
   dateOfBirth: string;
   gender: string;
-  passportNumber: string;
+  passportNumber?: string | null;
   nationality: string;
   ticketNumber: string;
 }
 
 export interface PassengerRequest {
-  bookingId: string;
   seatId: string;
   firstName: string;
   lastName: string;
   dateOfBirth: string;
   gender: string;
-  passportNumber: string;
+  passportNumber?: string | null;
   nationality: string;
+}
+
+export interface PassengerCreateRequest extends PassengerRequest {
+  bookingId: string;
+}
+
+export interface PassengerBulkRequest {
+  bookingId: string;
+  passengers: PassengerRequest[];
 }
 
 // â”€â”€â”€ Notification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

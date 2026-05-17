@@ -6,6 +6,7 @@ import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { ToastService } from '../services/toast.service';
+import { SUPPRESS_GLOBAL_ERROR_TOAST } from './http-context-tokens';
 
 // Endpoints that do NOT need the Authorization header
 const PUBLIC_ENDPOINTS = [
@@ -22,6 +23,7 @@ export class JwtInterceptor implements HttpInterceptor {
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const token = this.auth.getToken();
     const isPublic = PUBLIC_ENDPOINTS.some(url => req.url.includes(url));
+    const suppressGlobalErrorToast = req.context.get(SUPPRESS_GLOBAL_ERROR_TOAST);
 
     if (token && !isPublic) {
       req = req.clone({
@@ -38,7 +40,7 @@ export class JwtInterceptor implements HttpInterceptor {
           this.toast.error('Access denied. Insufficient permissions.');
         } else if (err.status === 0) {
           this.toast.error('Cannot connect to server. Please check your connection.');
-        } else {
+        } else if (!suppressGlobalErrorToast) {
           const message = err.error?.message || err.error?.error || 'Something went wrong.';
           this.toast.error(message);
         }

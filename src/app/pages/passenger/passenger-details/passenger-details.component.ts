@@ -33,7 +33,7 @@ export class PassengerDetailsComponent implements OnInit {
       lastName:       ['', [Validators.required, Validators.minLength(2)]],
       dateOfBirth:    ['', Validators.required],
       gender:         ['MALE', Validators.required],
-      passportNumber: ['', Validators.required],
+      passportNumber: [''],
       nationality:    ['', Validators.required],
     });
   }
@@ -48,10 +48,12 @@ export class PassengerDetailsComponent implements OnInit {
   onSubmit(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.loading = true;
+    const formValue = this.form.getRawValue();
     const payload = {
       bookingId: this.bookingId,
       seatId:    this.seatId,
-      ...this.form.value
+      ...formValue,
+      passportNumber: this.normalizeOptionalPassport(formValue.passportNumber),
     };
     this.passengerService.createPassenger(payload).subscribe({
       next: p => {
@@ -65,5 +67,10 @@ export class PassengerDetailsComponent implements OnInit {
 
   goToPayment(): void {
     this.router.navigate(['/passenger/payment', this.bookingId]);
+  }
+
+  private normalizeOptionalPassport(value: unknown): string | null {
+    const normalized = String(value || '').trim();
+    return normalized || null;
   }
 }

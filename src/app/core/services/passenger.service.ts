@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Passenger, PassengerRequest } from '../../models';
+import { Passenger, PassengerBulkRequest, PassengerCreateRequest } from '../../models';
 
 @Injectable({ providedIn: 'root' })
 export class PassengerService {
@@ -10,8 +10,19 @@ export class PassengerService {
 
   constructor(private http: HttpClient) {}
 
-  createPassenger(data: PassengerRequest): Observable<Passenger> {
-    return this.http.post<Passenger>(this.base, data);
+  createPassengers(data: PassengerBulkRequest): Observable<Passenger[]> {
+    return this.http.post<Passenger[]>(`${this.base}/bulk`, data);
+  }
+
+  createPassenger(data: PassengerCreateRequest): Observable<Passenger> {
+    const { bookingId, ...passenger } = data;
+
+    return this.createPassengers({
+      bookingId,
+      passengers: [passenger],
+    }).pipe(
+      map(passengers => passengers[0])
+    );
   }
 
   getPassengersByBooking(bookingId: string): Observable<Passenger[]> {

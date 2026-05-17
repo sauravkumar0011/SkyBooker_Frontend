@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../../environments/environment';
+import { SUPPRESS_GLOBAL_ERROR_TOAST } from '../interceptors/http-context-tokens';
 import { SeatService } from './seat.service';
 
 describe('SeatService', () => {
@@ -83,12 +84,22 @@ describe('SeatService', () => {
     req = httpMock.expectOne(`${baseUrl}/seat-1/release`);
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual({ holdReference: 'hold-ref-1' });
+    expect(req.request.context.get(SUPPRESS_GLOBAL_ERROR_TOAST)).toBeFalse();
     req.flush({});
 
     service.confirmSeat('seat-1', 'hold-ref-1').subscribe();
     req = httpMock.expectOne(`${baseUrl}/seat-1/confirm`);
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual({ holdReference: 'hold-ref-1' });
+    req.flush({});
+  });
+
+  it('should allow release seat requests to suppress global error toasts', () => {
+    service.releaseSeat('seat-1', 'hold-ref-1', { suppressHandledErrorToast: true }).subscribe();
+
+    const req = httpMock.expectOne(`${baseUrl}/seat-1/release`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.context.get(SUPPRESS_GLOBAL_ERROR_TOAST)).toBeTrue();
     req.flush({});
   });
 });
